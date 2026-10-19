@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+
+<html lang="id"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><title>RestoFlow POS &amp; QR Dining Platform</title><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-background": "#0b1c30", "on-secondary-fixed": "#131b2e", "surface-bright": "#f8f9ff", "surface-container-highest": "#d3e4fe", "tertiary-fixed": "#6ffbbe", "surface-container": "#e5eeff", "surface-container-lowest": "#ffffff", "on-tertiary-fixed-variant": "#005236", "on-secondary-container": "#5c647a", "outline": "#8e7166", "surface": "#f8f9ff", "on-primary-fixed": "#370e00", "primary-container": "#cc4900", "on-tertiary-container": "#f5fff6", "inverse-surface": "#213145", "secondary-fixed": "#dae2fd", "on-secondary": "#ffffff", "tertiary-fixed-dim": "#4edea3", "on-error-container": "#93000a", "inverse-on-surface": "#eaf1ff", "primary-fixed-dim": "#ffb599", "surface-variant": "#d3e4fe", "on-tertiary": "#ffffff", "on-surface": "#0b1c30", "surface-container-low": "#eff4ff", "secondary-container": "#dae2fd", "tertiary": "#006947", "surface-dim": "#cbdbf5", "tertiary-container": "#00855b", "inverse-primary": "#ffb599", "on-error": "#ffffff", "secondary-fixed-dim": "#bec6e0", "on-surface-variant": "#5a4138", "on-secondary-fixed-variant": "#3f465c", "primary-fixed": "#ffdbce", "error": "#ba1a1a", "on-primary-container": "#fffbff", "surface-tint": "#a73a00", "primary": "#a33900", "on-primary": "#ffffff", "secondary": "#565e74", "on-primary-fixed-variant": "#7f2b00", "surface-container-high": "#dce9ff", "error-container": "#ffdad6", "on-tertiary-fixed": "#002113", "background": "#f8f9ff", "outline-variant": "#e2bfb2" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-xs": "0.25rem", "margin-mobile": "1rem", "margin": "1.5rem", "gutter": "1rem", "space-xl": "2rem", "space-lg": "1.5rem", "space-md": "1rem", "gutter-mobile": "0.75rem", "space-sm": "0.5rem" }, "fontFamily": { "headline-md": ["Plus Jakarta Sans"], "body-lg": ["Inter"], "label-lg": ["Plus Jakarta Sans"], "headline-xl": ["Plus Jakarta Sans"], "body-md": ["Inter"], "headline-xl-mobile": ["Plus Jakarta Sans"], "tabular-nums": ["Inter"], "headline-lg": ["Plus Jakarta Sans"], "headline-lg-mobile": ["Plus Jakarta Sans"], "title-md": ["Plus Jakarta Sans"], "title-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "body-sm": ["Inter"], "label-md": ["Plus Jakarta Sans"] }, "fontSize": { "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "700" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "label-lg": ["14px", { "lineHeight": "18px", "fontWeight": "700" }], "headline-xl": ["40px", { "lineHeight": "48px", "fontWeight": "800" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "headline-xl-mobile": ["30px", { "lineHeight": "36px", "fontWeight": "800" }], "tabular-nums": ["16px", { "lineHeight": "20px", "fontWeight": "600" }], "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }], "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }], "title-md": ["16px", { "lineHeight": "22px", "fontWeight": "600" }], "title-lg": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "700" }], "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "600" }] } } } };</script></head><body class="bg-background font-body-md text-on-surface antialiased min-h-screen flex flex-col"><header class="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest/95 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.06)]"><div class="h-20 w-full px-6 flex items-center justify-between gap-4"><div class="flex items-center gap-5 shrink-0"><div class="flex items-center gap-3"><img alt="RestoFlow Brand Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1V7kagGnEJbBK_ZFB0BpBcn1Oqe0VdFjriteWrG5Z5BLoLmlMEKD4gkT00upzp0nkgtNI9s_f75jwQM7Y65K1Hg-mXoHb5OZ9nO85Fnb2C9V6WWD-HbPUa0Pot26wRx9QC9o7GdHInTzMhonmTWHkVgEDg4q-juS7ADKzPIYpU9boRnXGZrTf4Xd2QY0eUElobsXGRsp7zrsrPzNcgOu5coHEQA6IugFGqB_l-6NnpIsnVneZgWPn3ZVw"/><div class="flex flex-col"><span class="font-title-md text-title-md text-primary tracking-tight leading-tight">RestoFlow</span><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Suite v2.4</span></div></div><div class="h-7 w-px bg-surface-container-high hidden lg:block"></div><div class="hidden lg:flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-lg"><span class="material-symbols-outlined text-primary text-[18px]">storefront</span><div class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface leading-tight font-bold">RestoFlow Central Bistro</span><span class="font-body-sm text-body-sm text-on-surface-variant leading-none">Cabang Senopati</span></div><span class="material-symbols-outlined text-on-surface-variant text-[16px] ml-1">expand_more</span></div><div class="hidden xl:flex items-center gap-2 bg-tertiary-container/10 px-3 py-1.5 rounded-lg"><span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span><span class="font-label-md text-label-md text-tertiary">Shift Siang Aktif</span><span class="font-body-sm text-body-sm text-on-surface-variant">• Kasir 01</span></div></div><nav class="flex items-center bg-surface-container-low p-1.5 rounded-xl gap-1 shrink-0 overflow-x-auto" data-active-classes="bg-primary-container text-on-primary-container font-bold shadow-sm"><a class="px-3.5 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors whitespace-nowrap" data-path="customer-qr-order" href="#">Customer QR Order</a><a class="px-3.5 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors whitespace-nowrap" data-path="kitchen-display-system" href="#">Kitchen Display</a><a class="px-3.5 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors whitespace-nowrap" data-path="kasir-billing-pos" href="#">Kasir &amp; Billing POS</a><a class="px-3.5 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors whitespace-nowrap" data-path="admin-analytics" href="#">Admin &amp; Analytics</a></nav><div class="flex items-center gap-3 shrink-0"><div class="hidden md:flex items-center gap-1.5 bg-surface-container-low px-3 py-1.5 rounded-lg"><span class="material-symbols-outlined text-on-surface-variant text-[18px]">schedule</span><span class="font-tabular-nums text-tabular-nums text-on-surface tracking-tight">12:42:08 WIB</span></div><button aria-label="Notifications" class="relative p-2 rounded-lg bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-on-primary font-label-sm text-[10px]">3</span></button><div class="flex items-center gap-2 pl-2"><div class="hidden sm:flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface">Rian Pratama</span><span class="font-body-sm text-body-sm text-on-surface-variant">Head Cashier</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></div></header><main class="w-full pt-20 bg-background flex-1 flex flex-col"><div class="flex flex-col w-full">
+<!-- POS Control Bar & Register Status -->
+<section class="w-full bg-surface-container-low px-6 py-4 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+<div class="flex flex-wrap items-center gap-4">
+<!-- Operator Pill -->
+<div class="flex items-center gap-3 bg-surface-container-lowest px-4 py-2 rounded-xl shadow-sm">
+<div class="w-10 h-10 rounded-lg bg-primary-container/15 flex items-center justify-center text-primary-container font-headline-md text-headline-md">
+<span class="material-symbols-outlined text-[24px]">point_of_sale</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md text-on-surface">Siti Rahma</span>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-container/15 text-tertiary font-label-sm text-label-sm uppercase tracking-wide">Kasir 01</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Shift Siang #SHF-402 • Mulai 11:00 WIB</span>
+</div>
+</div>
+<!-- Drawer Cash Capsule -->
+<div class="flex items-center gap-3 bg-surface-container-lowest px-4 py-2 rounded-xl shadow-sm">
+<span class="material-symbols-outlined text-secondary text-[22px]">payments</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Kas Masuk Awal (Drawer)</span>
+<span class="font-tabular-nums text-tabular-nums text-on-surface font-bold">Rp 500.000</span>
+</div>
+</div>
+<!-- Live Shift Stats -->
+<div class="hidden xl:flex items-center gap-3 bg-surface-container-lowest px-4 py-2 rounded-xl shadow-sm">
+<span class="material-symbols-outlined text-tertiary text-[22px]">trending_up</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Omzet Sesi Ini (Live)</span>
+<span class="font-tabular-nums text-tabular-nums text-tertiary font-bold">Rp 4.820.000</span>
+</div>
+</div>
+</div>
+<!-- Quick Table Search & Quick Actions -->
+<div class="flex items-center gap-3 flex-1 lg:max-w-md">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full pl-11 pr-4 py-2.5 rounded-xl bg-surface-container-lowest text-on-surface font-body-md text-body-md placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest shadow-sm" id="posSearchInput" placeholder="Cari Meja (cth: A01, VIP) atau Order #ORD..." type="text"/>
+<button class="absolute right-2.5 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm" type="button">
+          ⌘K
+        </button>
+</div>
+<button class="shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 bg-surface-container-highest hover:bg-surface-container text-on-surface rounded-xl font-label-md text-label-md transition-colors" title="Buka Laci Kasir Manual" type="button">
+<span class="material-symbols-outlined text-[18px]">lock_open</span>
+<span class="hidden sm:inline">Laci</span>
+</button>
+<button class="shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 bg-surface-container-highest hover:bg-surface-container text-on-surface rounded-xl font-label-md text-label-md transition-colors" title="Tukar Shift" type="button">
+<span class="material-symbols-outlined text-[18px]">sync_alt</span>
+<span class="hidden sm:inline">Shift</span>
+</button>
+</div>
+</section>
+<!-- Dual Workspace: Floor Layout Grid (Left 60%) + Live Billing Settlement Drawer (Right 40%) -->
+<div class="w-full px-6 py-6 grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+<!-- LEFT PANEL: Table Matrix & Occupancy Status (col-span-7) -->
+<section class="xl:col-span-7 flex flex-col gap-5">
+<!-- Filter Bar & Zone Navigator -->
+<div class="bg-surface-container-lowest p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+<button class="filter-chip active-filter px-4 py-2 rounded-xl bg-on-background text-surface font-label-md text-label-md whitespace-nowrap shadow-sm transition-all" data-filter="all" type="button">
+            Semua Meja (18)
+          </button>
+<button class="filter-chip px-4 py-2 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface-variant font-label-md text-label-md whitespace-nowrap transition-all" data-filter="occupied" type="button">
+<span class="inline-block w-2 h-2 rounded-full bg-primary-container mr-1.5"></span>Terisi (8)
+          </button>
+<button class="filter-chip px-4 py-2 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface-variant font-label-md text-label-md whitespace-nowrap transition-all" data-filter="billing" type="button">
+<span class="inline-block w-2 h-2 rounded-full bg-primary mr-1.5 animate-pulse"></span>Minta Bill (3)
+          </button>
+<button class="filter-chip px-4 py-2 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface-variant font-label-md text-label-md whitespace-nowrap transition-all" data-filter="available" type="button">
+<span class="inline-block w-2 h-2 rounded-full bg-tertiary mr-1.5"></span>Kosong (7)
+          </button>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Area:</span>
+<span class="px-2.5 py-1 bg-surface-container rounded-lg font-label-md text-label-md text-on-surface">Indoor Hall</span>
+<span class="px-2.5 py-1 bg-surface-container-low hover:bg-surface-container rounded-lg font-label-md text-label-md text-on-surface-variant cursor-pointer transition-colors">Terrace VIP</span>
+</div>
+</div>
+<!-- Tables Interactive Bento Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="tableGrid">
+<!-- MEJA A01 (SELECTED & BILLING REQUESTED) -->
+<article class="table-card relative p-4 rounded-2xl bg-surface-container-lowest shadow-md flex flex-col justify-between cursor-pointer transition-all duration-200 transform hover:-translate-y-0.5" data-status="billing" data-table="A01">
+<div class="absolute -top-2.5 -right-2 bg-primary text-on-primary text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+            Billing Aktif
+          </div>
+<div class="flex items-start justify-between gap-2 mb-3">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center font-headline-md text-headline-md shadow-inner">
+                A01
+              </div>
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface">Meja A01</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">group</span> 2 Tamu • #ORD-9842
+                </span>
+</div>
+</div>
+</div>
+<!-- Mid Meta Info -->
+<div class="bg-surface-container-low p-2.5 rounded-xl mb-3 flex items-center justify-between">
+<div class="flex items-center gap-1 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-primary">timer</span>
+<span>38 Menit</span>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px]">restaurant_menu</span>
+<span>2 Item Pesanan</span>
+</div>
+</div>
+<!-- Bottom Price & Badge -->
+<div class="flex items-center justify-between pt-2">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Total Tagihan</span>
+<span class="font-tabular-nums text-tabular-nums text-primary font-bold text-lg">Rp 30.000</span>
+</div>
+<div class="px-3 py-1.5 rounded-xl bg-primary-container text-on-primary-container font-label-md text-label-md flex items-center gap-1">
+<span>Selesaikan</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</div>
+</div>
+</article>
+<!-- MEJA A02 (AVAILABLE) -->
+<article class="table-card p-4 rounded-2xl bg-surface-container-lowest shadow-sm hover:shadow-md flex flex-col justify-between cursor-pointer transition-all duration-200" data-status="available" data-table="A02">
+<div class="flex items-start justify-between gap-2 mb-3">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-tertiary-container/15 text-tertiary flex items-center justify-center font-headline-md text-headline-md">
+                A02
+              </div>
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface">Meja A02</span>
+<span class="font-body-sm text-body-sm text-tertiary font-bold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span> Meja Kosong
+                </span>
+</div>
+</div>
+<span class="px-2 py-1 rounded-lg bg-surface-container font-label-sm text-label-sm text-on-surface-variant">4 Kursi</span>
+</div>
+<div class="bg-surface-container-low/60 p-2.5 rounded-xl mb-3 flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
+<span>Siap diduduki pelanggan</span>
+<span class="material-symbols-outlined text-[16px] text-tertiary">check_circle</span>
+</div>
+<div class="flex items-center justify-between pt-2">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Dibersihkan 12:20</span>
+<button class="px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container font-label-md text-label-md text-on-surface transition-colors" type="button">
+              + Buka Sesi
+            </button>
+</div>
+</article>
+<!-- MEJA A03 (OCCUPIED / MAKAN) -->
+<article class="table-card p-4 rounded-2xl bg-surface-container-lowest shadow-sm hover:shadow-md flex flex-col justify-between cursor-pointer transition-all duration-200" data-status="occupied" data-table="A03">
+<div class="flex items-start justify-between gap-2 mb-3">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-secondary-container text-on-secondary-container flex items-center justify-center font-headline-md text-headline-md">
+                A03
+              </div>
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface">Meja A03</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">group</span> 4 Tamu • Sedang Makan
+                </span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold">Aktif</span>
+</div>
+<div class="bg-surface-container-low p-2.5 rounded-xl mb-3 flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary">timer</span>
+<span>22 Menit</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">soup_kitchen</span>
+<span>5 Item (KDS Siap)</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Subtotal Sementara</span>
+<span class="font-tabular-nums text-tabular-nums text-on-surface font-bold">Rp 145.000</span>
+</div>
+<button class="px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container font-label-md text-label-md text-on-surface transition-colors" type="button">
+              Detail
+            </button>
+</div>
+</article>
+<!-- MEJA B01 (BILLING REQUESTED) -->
+<article class="table-card relative p-4 rounded-2xl bg-surface-container-lowest shadow-sm hover:shadow-md flex flex-col justify-between cursor-pointer transition-all duration-200" data-status="billing" data-table="B01">
+<div class="absolute -top-2 right-2 bg-primary-fixed text-on-primary-fixed text-[10px] font-bold px-2 py-0.5 rounded-full">
+            Minta Struk
+          </div>
+<div class="flex items-start justify-between gap-2 mb-3">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-headline-md text-headline-md">
+                B01
+              </div>
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface">Meja B01</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">group</span> 3 Tamu • #ORD-9839
+                </span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-2.5 rounded-xl mb-3 flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">timer</span>
+<span>54 Menit</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">receipt_long</span>
+<span>6 Item</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Total Tagihan</span>
+<span class="font-tabular-nums text-tabular-nums text-primary font-bold">Rp 210.000</span>
+</div>
+<button class="px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container font-label-md text-label-md text-on-surface transition-colors" type="button">
+              Pilih Meja
+            </button>
+</div>
+</article>
+<!-- MEJA B02 (OCCUPIED / MAKAN) -->
+<article class="table-card p-4 rounded-2xl bg-surface-container-lowest shadow-sm hover:shadow-md flex flex-col justify-between cursor-pointer transition-all duration-200" data-status="occupied" data-table="B02">
+<div class="flex items-start justify-between gap-2 mb-3">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-secondary-container text-on-secondary-container flex items-center justify-center font-headline-md text-headline-md">
+                B02
+              </div>
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface">Meja B02</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">group</span> 2 Tamu • #ORD-9844
+                </span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-2.5 rounded-xl mb-3 flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">timer</span>
+<span>15 Menit</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">skillet</span>
+<span>3 Item</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Subtotal</span>
+<span class="font-tabular-nums text-tabular-nums text-on-surface font-bold">Rp 85.000</span>
+</div>
+<button class="px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container font-label-md text-label-md text-on-surface transition-colors" type="button">
+              Detail
+            </button>
+</div>
+</article>
+<!-- MEJA VIP 01 (OCCUPIED / MAKAN BESAR) -->
+<article class="table-card p-4 rounded-2xl bg-surface-container-lowest shadow-sm hover:shadow-md flex flex-col justify-between cursor-pointer transition-all duration-200" data-status="occupied" data-table="VIP01">
+<div class="flex items-start justify-between gap-2 mb-3">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-on-background text-surface-bright flex items-center justify-center font-headline-md text-headline-md">
+                VIP1
+              </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-title-lg text-title-lg text-on-surface">VIP Saloon 01</span>
+<span class="material-symbols-outlined text-primary text-[16px]">star</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">8 Tamu (Reservasi Korporat)</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-2.5 rounded-xl mb-3 flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">timer</span>
+<span>1 Jam 12m</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">liquor</span>
+<span>14 Item</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Subtotal</span>
+<span class="font-tabular-nums text-tabular-nums text-primary font-bold">Rp 720.000</span>
+</div>
+<button class="px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container font-label-md text-label-md text-on-surface transition-colors" type="button">
+              Detail
+            </button>
+</div>
+</article>
+</div>
+<!-- Quick Operations Banner -->
+<div class="bg-surface-container p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container-lowest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[24px]">call_split</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-on-surface">Pindah Meja / Gabung Bill Cepat</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Gabungkan beberapa sesi meja menjadi satu transaksi cetak</span>
+</div>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<button class="px-4 py-2 bg-surface-container-lowest hover:bg-surface-container-high text-on-surface font-label-md text-label-md rounded-xl shadow-sm transition-colors" type="button">
+            Gabung Meja
+          </button>
+<button class="px-4 py-2 bg-surface-container-lowest hover:bg-surface-container-high text-on-surface font-label-md text-label-md rounded-xl shadow-sm transition-colors" type="button">
+            Transfer Meja
+          </button>
+</div>
+</div>
+</section>
+<!-- RIGHT PANEL: Dedicated Billing & Settlement Drawer (col-span-5) -->
+<aside class="xl:col-span-5 flex flex-col gap-5">
+<div class="bg-surface-container-lowest p-6 rounded-3xl shadow-lg flex flex-col">
+<!-- Drawer Header -->
+<div class="flex items-start justify-between pb-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-2xl bg-primary-container text-on-primary-container flex items-center justify-center font-headline-lg text-headline-lg shadow-sm">
+              A01
+            </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<h2 class="font-headline-md text-headline-md text-on-surface">Billing Sesi Meja A01</h2>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+<span>Order #ORD-9842</span>
+<span>•</span>
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-tertiary">qr_code_scanner</span>
+                  QR Self-Order Dinamis
+                </span>
+</div>
+</div>
+</div>
+<!-- Switch Tutup Meja Otomatis -->
+<label class="flex items-center gap-2 cursor-pointer bg-surface-container-low px-3 py-2 rounded-xl">
+<input checked="" class="w-4 h-4 accent-primary rounded cursor-pointer" id="autoCloseTable" type="checkbox"/>
+<span class="font-label-sm text-label-sm text-on-surface font-bold select-none">Tutup Sesi Saat Lunas</span>
+</label>
+</div>
+<!-- Cumulative Gelombang Order List -->
+<div class="py-4 flex flex-col gap-3">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="font-label-sm text-label-sm uppercase tracking-wider font-bold">Rincian Pesanan (1 Gelombang)</span>
+<span class="font-body-sm text-body-sm">Pukul 12:43:18 WIB</span>
+</div>
+<!-- Order Wave Container -->
+<div class="bg-surface-container-low/70 p-4 rounded-2xl flex flex-col gap-3">
+<div class="flex items-center justify-between pb-2">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-tertiary-container/20 text-tertiary font-label-sm text-label-sm font-bold">
+                  Gelombang 1
+                </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Selesai Disajikan</span>
+</div>
+<span class="font-tabular-nums text-tabular-nums text-on-surface-variant text-body-sm">2 Item</span>
+</div>
+<!-- Item 1 -->
+<div class="flex items-center justify-between gap-3">
+<div class="flex items-start gap-3">
+<span class="w-6 h-6 rounded-lg bg-surface-container-highest text-on-surface font-label-md text-label-md flex items-center justify-center shrink-0">1x</span>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-on-surface">Ayam Crispy Sambal Bawang</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Level 3 (Pedas Sedang) • Nasi Pulen</span>
+</div>
+</div>
+<span class="font-tabular-nums text-tabular-nums text-on-surface font-bold shrink-0">Rp 15.000</span>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center justify-between gap-3">
+<div class="flex items-start gap-3">
+<span class="w-6 h-6 rounded-lg bg-surface-container-highest text-on-surface font-label-md text-label-md flex items-center justify-center shrink-0">1x</span>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-on-surface">Ice Peach Blossom Tea</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Less Sugar (50%) • Selasih</span>
+</div>
+</div>
+<span class="font-tabular-nums text-tabular-nums text-on-surface font-bold shrink-0">Rp 15.000</span>
+</div>
+</div>
+</div>
+<!-- Auxiliary Action Bar (Split, Cetak Bill, Promo) -->
+<div class="grid grid-cols-3 gap-2 py-2">
+<button class="flex flex-col items-center justify-center py-2.5 px-2 bg-surface-container-low hover:bg-surface-container text-on-surface rounded-xl transition-colors" onclick="alert('Mencetak Bill Sementara untuk Meja A01...')" type="button">
+<span class="material-symbols-outlined text-[20px] mb-0.5 text-secondary">print</span>
+<span class="font-label-sm text-label-sm">Cetak Bill</span>
+</button>
+<button class="flex flex-col items-center justify-center py-2.5 px-2 bg-surface-container-low hover:bg-surface-container text-on-surface rounded-xl transition-colors" onclick="alert('Membuka dialog Split Bill / Bagi Tagihan...')" type="button">
+<span class="material-symbols-outlined text-[20px] mb-0.5 text-secondary">call_split</span>
+<span class="font-label-sm text-label-sm">Split Bill</span>
+</button>
+<button class="flex flex-col items-center justify-center py-2.5 px-2 bg-surface-container-low hover:bg-surface-container text-on-surface rounded-xl transition-colors" onclick="alert('Voucher Grand Opening (100% Tax &amp; SC waived) telah terpasang!')" type="button">
+<span class="material-symbols-outlined text-[20px] mb-0.5 text-primary">confirmation_number</span>
+<span class="font-label-sm text-label-sm">Voucher/Diskon</span>
+</button>
+</div>
+<!-- Tax & Subtotal Breakdown Calculation -->
+<div class="py-4 flex flex-col gap-2 bg-surface-container-low/40 p-4 rounded-2xl">
+<div class="flex items-center justify-between text-body-md text-on-surface-variant">
+<span>Subtotal Makanan &amp; Minuman</span>
+<span class="font-tabular-nums text-tabular-nums text-on-surface">Rp 30.000</span>
+</div>
+<div class="flex items-center justify-between text-body-md text-on-surface-variant">
+<span class="flex items-center gap-1">
+<span>PB1 / Pajak Resto (10%)</span>
+<span class="material-symbols-outlined text-[14px]">info</span>
+</span>
+<span class="font-tabular-nums text-tabular-nums text-on-surface">Rp 3.000</span>
+</div>
+<div class="flex items-center justify-between text-body-md text-on-surface-variant">
+<span>Service Charge (5%)</span>
+<span class="font-tabular-nums text-tabular-nums text-on-surface">Rp 1.500</span>
+</div>
+<div class="flex items-center justify-between text-body-md text-tertiary">
+<span class="flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-[16px]">local_offer</span>
+<span>Promo Diskon Grand Opening</span>
+</span>
+<span class="font-tabular-nums text-tabular-nums font-bold">-Rp 4.500</span>
+</div>
+<div class="pt-3 mt-1 flex items-baseline justify-between">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg uppercase tracking-wider text-on-surface">Total Tagihan Bersih</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Termasuk semua pajak &amp; layanan</span>
+</div>
+<span class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight">Rp 30.000</span>
+</div>
+</div>
+<!-- Payment Method Selector Tabs -->
+<div class="pt-5 flex flex-col gap-3">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-bold">Pilih Metode Pembayaran</span>
+<div class="grid grid-cols-4 gap-2 bg-surface-container-low p-1.5 rounded-2xl" id="payTabs">
+<button class="pay-tab active-pay-tab py-2.5 rounded-xl font-label-md text-label-md flex flex-col items-center gap-1 bg-surface-container-lowest text-primary shadow-sm" data-tab="qris" type="button">
+<span class="material-symbols-outlined text-[20px]">qr_code_2</span>
+<span>QRIS</span>
+</button>
+<button class="pay-tab py-2.5 rounded-xl font-label-md text-label-md flex flex-col items-center gap-1 text-on-surface-variant hover:text-on-surface transition-colors" data-tab="cash" type="button">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+<span>Tunai</span>
+</button>
+<button class="pay-tab py-2.5 rounded-xl font-label-md text-label-md flex flex-col items-center gap-1 text-on-surface-variant hover:text-on-surface transition-colors" data-tab="debit" type="button">
+<span class="material-symbols-outlined text-[20px]">credit_card</span>
+<span>Debit/EDC</span>
+</button>
+<button class="pay-tab py-2.5 rounded-xl font-label-md text-label-md flex flex-col items-center gap-1 text-on-surface-variant hover:text-on-surface transition-colors" data-tab="transfer" type="button">
+<span class="material-symbols-outlined text-[20px]">account_balance</span>
+<span>Transfer</span>
+</button>
+</div>
+<!-- TAB CONTENT: QRIS STATIS / DINAMIS (DEFAULT) -->
+<div class="pay-content bg-surface-container-low/60 p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-4" id="qrisContent">
+<div class="p-3 bg-surface-container-lowest rounded-2xl shadow-sm flex flex-col items-center shrink-0">
+<!-- Visual Simulated QRIS Code SVG -->
+<svg class="w-32 h-32" fill="currentColor" viewbox="0 0 100 100">
+<!-- Outer Corners -->
+<rect class="text-on-surface" height="28" rx="4" width="28" x="5" y="5"></rect>
+<rect fill="white" height="20" rx="2" width="20" x="9" y="9"></rect>
+<rect class="text-on-surface" height="12" rx="1" width="12" x="13" y="13"></rect>
+<rect class="text-on-surface" height="28" rx="4" width="28" x="67" y="5"></rect>
+<rect fill="white" height="20" rx="2" width="20" x="71" y="9"></rect>
+<rect class="text-on-surface" height="12" rx="1" width="12" x="75" y="13"></rect>
+<rect class="text-on-surface" height="28" rx="4" width="28" x="5" y="67"></rect>
+<rect fill="white" height="20" rx="2" width="20" x="9" y="71"></rect>
+<rect class="text-on-surface" height="12" rx="1" width="12" x="13" y="75"></rect>
+<!-- QR Data Matrix Pattern -->
+<rect class="text-on-surface" height="6" width="8" x="38" y="10"></rect>
+<rect class="text-on-surface" height="6" width="10" x="50" y="8"></rect>
+<rect class="text-on-surface" height="6" width="12" x="42" y="20"></rect>
+<rect class="text-on-surface" height="10" width="6" x="10" y="38"></rect>
+<rect class="text-on-surface" height="8" width="8" x="20" y="44"></rect>
+<rect class="text-primary" height="10" width="10" x="34" y="34"></rect>
+<rect class="text-on-surface" height="6" width="8" x="48" y="38"></rect>
+<rect class="text-on-surface" height="12" width="8" x="60" y="34"></rect>
+<rect class="text-on-surface" height="6" width="14" x="74" y="40"></rect>
+<rect class="text-on-surface" height="10" width="8" x="38" y="50"></rect>
+<rect class="text-primary" height="8" width="12" x="50" y="52"></rect>
+<rect class="text-on-surface" height="14" width="8" x="66" y="50"></rect>
+<rect class="text-on-surface" height="8" width="10" x="78" y="52"></rect>
+<rect class="text-on-surface" height="8" width="12" x="38" y="66"></rect>
+<rect class="text-on-surface" height="10" width="8" x="54" y="68"></rect>
+<rect class="text-on-surface" height="12" width="8" x="40" y="78"></rect>
+<rect class="text-on-surface" height="8" width="14" x="52" y="82"></rect>
+<rect class="text-on-surface" height="10" width="12" x="70" y="72"></rect>
+<rect class="text-on-surface" height="12" width="6" x="86" y="74"></rect>
+</svg>
+<div class="mt-2 flex items-center gap-1.5 font-label-sm text-label-sm text-on-surface font-bold">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span>QRIS Dinamis Rp 30.000</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-on-surface font-label-sm text-label-sm">Auto Detect</span>
+<span class="font-body-sm text-body-sm text-tertiary font-semibold">Siap Dipindai Pelanggan</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                Mendukung GoPay, OVO, ShopeePay, Dana, BCA Mobile, Mandiri Livin', &amp; seluruh bank jaringan QRIS.
+              </p>
+<div class="flex items-center gap-2 pt-1 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">check_circle</span>
+<span>Webhook auto-settle aktif</span>
+</div>
+</div>
+</div>
+<!-- TAB CONTENT: CASH / TUNAI (HIDDEN BY DEFAULT) -->
+<div class="pay-content hidden bg-surface-container-low/60 p-4 rounded-2xl flex flex-col gap-3" id="cashContent">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Nominal Uang Tunai Diterima:</span>
+<div class="grid grid-cols-3 gap-2">
+<button class="cash-quick-btn py-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container font-label-md text-label-md text-on-surface transition-all shadow-sm font-bold" data-amount="30000" type="button">
+                Rp 30.000 (Pas)
+              </button>
+<button class="cash-quick-btn py-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container font-label-md text-label-md text-on-surface transition-all shadow-sm font-bold" data-amount="50000" type="button">
+                Rp 50.000
+              </button>
+<button class="cash-quick-btn py-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container font-label-md text-label-md text-on-surface transition-all shadow-sm font-bold" data-amount="100000" type="button">
+                Rp 100.000
+              </button>
+</div>
+<div class="flex items-center gap-3 pt-2">
+<div class="flex-1 bg-surface-container-lowest p-3 rounded-xl flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Diterima:</span>
+<span class="font-tabular-nums text-tabular-nums text-on-surface font-bold" id="cashReceivedDisplay">Rp 30.000</span>
+</div>
+<div class="flex-1 bg-surface-container-lowest p-3 rounded-xl flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Kembalian:</span>
+<span class="font-tabular-nums text-tabular-nums text-tertiary font-bold" id="cashChangeDisplay">Rp 0</span>
+</div>
+</div>
+</div>
+<!-- TAB CONTENT: DEBIT / EDC (HIDDEN BY DEFAULT) -->
+<div class="pay-content hidden bg-surface-container-low/60 p-4 rounded-2xl flex flex-col gap-3" id="debitContent">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Pilih Mesin EDC / Kartu:</span>
+<div class="grid grid-cols-3 gap-2">
+<button class="py-2.5 rounded-xl bg-surface-container-lowest font-label-md text-label-md text-on-surface shadow-sm" type="button">EDC BCA #01</button>
+<button class="py-2.5 rounded-xl bg-surface-container-lowest font-label-md text-label-md text-on-surface shadow-sm" type="button">EDC Mandiri #02</button>
+<button class="py-2.5 rounded-xl bg-surface-container-lowest font-label-md text-label-md text-on-surface shadow-sm" type="button">EDC BRI #01</button>
+</div>
+<input class="w-full px-3 py-2 rounded-xl bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none" placeholder="Masukkan 4 Digit Terakhir Kartu &amp; No. Approval..." type="text"/>
+</div>
+<!-- TAB CONTENT: TRANSFER BANK (HIDDEN BY DEFAULT) -->
+<div class="pay-content hidden bg-surface-container-low/60 p-4 rounded-2xl flex flex-col gap-3" id="transferContent">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Nomor Rekening Kas RestoFlow:</span>
+<div class="bg-surface-container-lowest p-3 rounded-xl flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-on-surface">BCA 8092-291-002</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">a.n. RestoFlow Central Bistro</span>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container text-on-surface font-label-sm text-label-sm" type="button">Salin</button>
+</div>
+</div>
+</div>
+<!-- Big Primary Settlement & Bump Button -->
+<div class="pt-6 flex flex-col gap-3">
+<button class="w-full h-14 rounded-2xl bg-primary hover:bg-primary-container text-on-primary font-headline-md text-headline-md flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.99]" id="btnProcessSettlement" onclick="handlePaymentSuccess()" type="button">
+<span class="material-symbols-outlined text-[26px]">task_alt</span>
+<span>PROSES PEMBAYARAN &amp; TUTUP SESI</span>
+</button>
+<!-- System Realtime Sync Callout -->
+<div class="bg-tertiary-container/10 p-3 rounded-xl flex items-start gap-2.5">
+<span class="material-symbols-outlined text-tertiary text-[18px] shrink-0 mt-0.5">sync</span>
+<p class="font-body-sm text-body-sm text-on-surface leading-snug">
+              Setelah pembayaran berhasil, struk tercetak otomatis, status <span class="font-bold text-tertiary">Meja A01</span> akan otomatis kembali <span class="font-bold">KOSONG (AVAILABLE)</span>, dan data omzet masuk ke laporan Admin secara real-time.
+            </p>
+</div>
+</div>
+</div>
+</aside>
+</div>
+<!-- Toast Notification Simulator for Receipt Print -->
+<div class="fixed bottom-6 right-6 z-50 transform translate-y-32 opacity-0 transition-all duration-300 pointer-events-none bg-inverse-surface text-inverse-on-surface px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-3 max-w-md" id="printToast">
+<div class="w-10 h-10 rounded-xl bg-tertiary flex items-center justify-center text-on-tertiary shrink-0">
+<span class="material-symbols-outlined text-[24px]">receipt</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md">Pembayaran Sukses! (Rp 30.000)</span>
+<span class="font-body-sm text-body-sm text-inverse-on-surface/80">Struk telah dikirim ke Printer Thermal Kasir 01. Meja A01 siap dibersihkan.</span>
+</div>
+</div>
+</div>
+<script>
+  // Simple Interactive POS Tab Logic
+  const payTabs = document.querySelectorAll('.pay-tab');
+  const payContents = {
+    qris: document.getElementById('qrisContent'),
+    cash: document.getElementById('cashContent'),
+    debit: document.getElementById('debitContent'),
+    transfer: document.getElementById('transferContent')
+  };
+
+  payTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Toggle Tab Active Classes
+      payTabs.forEach(t => {
+        t.classList.remove('bg-surface-container-lowest', 'text-primary', 'shadow-sm');
+        t.classList.add('text-on-surface-variant');
+      });
+      tab.classList.add('bg-surface-container-lowest', 'text-primary', 'shadow-sm');
+      tab.classList.remove('text-on-surface-variant');
+
+      // Toggle Content Visibility
+      const target = tab.getAttribute('data-tab');
+      Object.keys(payContents).forEach(key => {
+        if (payContents[key]) {
+          if (key === target) {
+            payContents[key].classList.remove('hidden');
+          } else {
+            payContents[key].classList.add('hidden');
+          }
+        }
+      });
+    });
+  });
+
+  // Cash Calculation Quick Nominal Buttons
+  const cashQuickBtns = document.querySelectorAll('.cash-quick-btn');
+  const cashReceivedDisplay = document.getElementById('cashReceivedDisplay');
+  const cashChangeDisplay = document.getElementById('cashChangeDisplay');
+  const billTotal = 30000;
+
+  cashQuickBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const amount = parseInt(btn.getAttribute('data-amount'), 10);
+      const change = Math.max(0, amount - billTotal);
+      if (cashReceivedDisplay) cashReceivedDisplay.innerText = 'Rp ' + amount.toLocaleString('id-ID');
+      if (cashChangeDisplay) cashChangeDisplay.innerText = 'Rp ' + change.toLocaleString('id-ID');
+    });
+  });
+
+  // Floor Filter Pills Interaction
+  const filterChips = document.querySelectorAll('.filter-chip');
+  const tableCards = document.querySelectorAll('.table-card');
+
+  filterChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      filterChips.forEach(c => {
+        c.classList.remove('bg-on-background', 'text-surface', 'shadow-sm');
+        c.classList.add('bg-surface-container-low', 'text-on-surface-variant');
+      });
+      chip.classList.add('bg-on-background', 'text-surface', 'shadow-sm');
+      chip.classList.remove('bg-surface-container-low', 'text-on-surface-variant');
+
+      const filterVal = chip.getAttribute('data-filter');
+      tableCards.forEach(card => {
+        const cardStatus = card.getAttribute('data-status');
+        if (filterVal === 'all' || cardStatus === filterVal) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  });
+
+  // Live Toast for Payment Success
+  function handlePaymentSuccess() {
+    const toast = document.getElementById('printToast');
+    if (!toast) return;
+    toast.classList.remove('translate-y-32', 'opacity-0', 'pointer-events-none');
+    toast.classList.add('translate-y-0', 'opacity-100');
+
+    setTimeout(() => {
+      toast.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+      toast.classList.remove('translate-y-0', 'opacity-100');
+    }, 4500);
+  }
+</script></main><footer class="w-full bg-surface-container-low py-4 mt-auto"><div class="w-full px-6 flex flex-col md:flex-row items-center justify-between gap-3 text-on-surface-variant"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-tertiary"></span><span class="font-body-sm text-body-sm">RestoFlow Cloud Engine Online • Sinkronisasi Otomatis 100% Aktif</span></div><div class="flex items-center gap-4 font-label-md text-label-md"><span>Terminal #01 (Senopati Main Hall)</span><span>•</span><span>Hotline Support: ext. 404</span></div></div></footer></body></html>

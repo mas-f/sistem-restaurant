@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-09T17:30:00+07:00",
+  "title": "Design System: RestoFlow Bistro",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Hearth Ember",
+        "canonical": "#ea580c",
+        "tonalRamp": [
+          "oklch(0.30 0.09 45)",
+          "oklch(0.40 0.13 45)",
+          "oklch(0.50 0.16 45)",
+          "oklch(0.58 0.17 45)",
+          "oklch(0.66 0.17 45)",
+          "oklch(0.76 0.14 45)",
+          "oklch(0.86 0.10 45)",
+          "oklch(0.95 0.04 45)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Porcelain",
+        "canonical": "#f8fafc",
+        "tonalRamp": [
+          "oklch(0.15 0.01 250)",
+          "oklch(0.27 0.01 250)",
+          "oklch(0.38 0.01 250)",
+          "oklch(0.50 0.01 250)",
+          "oklch(0.62 0.01 250)",
+          "oklch(0.74 0.01 250)",
+          "oklch(0.87 0.005 250)",
+          "oklch(0.98 0.002 250)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Ink Slate",
+        "canonical": "#0f172a",
+        "tonalRamp": [
+          "oklch(0.16 0.02 255)",
+          "oklch(0.24 0.02 255)",
+          "oklch(0.33 0.03 255)",
+          "oklch(0.42 0.03 255)",
+          "oklch(0.53 0.03 255)",
+          "oklch(0.65 0.02 255)",
+          "oklch(0.80 0.01 255)",
+          "oklch(0.93 0.005 255)"
+        ]
+      },
+      "status-available": {
+        "role": "status",
+        "displayName": "Service Green",
+        "canonical": "#10b981",
+        "tonalRamp": [
+          "oklch(0.30 0.07 165)",
+          "oklch(0.40 0.09 165)",
+          "oklch(0.50 0.11 165)",
+          "oklch(0.60 0.13 165)",
+          "oklch(0.69 0.13 165)",
+          "oklch(0.79 0.11 165)",
+          "oklch(0.88 0.07 165)",
+          "oklch(0.96 0.03 165)"
+        ]
+      },
+      "status-waiting": {
+        "role": "status",
+        "displayName": "Hold Amber",
+        "canonical": "#f59e0b",
+        "tonalRamp": [
+          "oklch(0.31 0.07 75)",
+          "oklch(0.41 0.10 75)",
+          "oklch(0.51 0.13 75)",
+          "oklch(0.61 0.15 75)",
+          "oklch(0.70 0.16 75)",
+          "oklch(0.80 0.15 75)",
+          "oklch(0.89 0.10 75)",
+          "oklch(0.96 0.05 75)"
+        ]
+      },
+      "status-error": {
+        "role": "status",
+        "displayName": "Signal Red",
+        "canonical": "#dc2626",
+        "tonalRamp": [
+          "oklch(0.30 0.10 25)",
+          "oklch(0.40 0.13 25)",
+          "oklch(0.50 0.17 25)",
+          "oklch(0.58 0.21 25)",
+          "oklch(0.66 0.21 25)",
+          "oklch(0.76 0.16 25)",
+          "oklch(0.86 0.10 25)",
+          "oklch(0.95 0.04 25)"
+        ]
+      },
+      "accent": {
+        "role": "primary-soft",
+        "displayName": "Ember Tint",
+        "canonical": "#ffedd5",
+        "tonalRamp": [
+          "oklch(0.36 0.07 45)",
+          "oklch(0.46 0.10 45)",
+          "oklch(0.56 0.13 45)",
+          "oklch(0.66 0.14 45)",
+          "oklch(0.76 0.12 45)",
+          "oklch(0.85 0.09 45)",
+          "oklch(0.92 0.06 45)",
+          "oklch(0.97 0.03 45)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero numbers only — sales totals, KPI values." },
+      "headline": { "displayName": "Headline", "purpose": "Page titles in every role's view." },
+      "title": { "displayName": "Title", "purpose": "Section and card titles, often extrabold at 14px." },
+      "body": { "displayName": "Body", "purpose": "All prose, list copy, and table cells." },
+      "label": { "displayName": "Label", "purpose": "Micro-labels, chips, uppercase kickers, status badges." },
+      "micro": { "displayName": "Micro", "purpose": "The 11px floor: badge pills, sidebar sublines, kitchen order codes and station tags." }
+    },
+    "shadows": [
+      {
+        "name": "card-rest",
+        "value": "0 2px 4px -1px rgba(15,23,42,0.06), 0 1px 2px -1px rgba(15,23,42,0.04)",
+        "purpose": "Default separation for cards at rest — menu tiles, KPI cards, kitchen dockets."
+      },
+      {
+        "name": "ember-float",
+        "value": "0 10px 25px -5px rgba(234,88,12,0.5)",
+        "purpose": "The only glowing shadow: floating cart bar and primary customer CTA."
+      },
+      {
+        "name": "overlay",
+        "value": "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)",
+        "purpose": "Dialogs, drawers, toasts above the working surface."
+      }
+    ],
+    "motion": [
+      { "name": "rise-in", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "One authored motion: content lifts in 8px with fade over 450ms." },
+      { "name": "stagger-step", "value": "60ms", "purpose": "Per-item delay between staggered rise-ins (max 4 steps)." },
+      { "name": "state-fast", "value": "150ms", "purpose": "Hover, focus, and border/color state transitions." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ember pill for the single primary action in any context.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>Tambah ke Keranjang</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--primary, #ea580c); color: var(--primary-foreground, #fff); font: 700 14px/1.4 Inter, sans-serif; padding: 12px 20px; border: none; border-radius: 9999px; cursor: pointer; transition: background 150ms, transform 150ms; } .ds-btn-primary:hover { background: rgba(234, 88, 12, 0.9); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.35); } .ds-btn-primary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Hairline pill for secondary and cancel actions.",
+      "html": "<button class=\"ds-btn-outline\">Pesan Lagi</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--card, #fff); color: var(--foreground, #0f172a); font: 700 14px/1.4 Inter, sans-serif; padding: 12px 20px; border: 1px solid var(--border, #e2e8f0); border-radius: 9999px; cursor: pointer; transition: background 150ms, border-color 150ms; } .ds-btn-outline:hover { background: var(--secondary, #f1f5f9); border-color: rgba(234, 88, 12, 0.4); } .ds-btn-outline:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.35); }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip-active",
+      "description": "Category and station filters; active state flips to ember fill.",
+      "html": "<div class=\"ds-chip-row\"><button class=\"ds-chip ds-chip-active\">Semua <span class=\"ds-chip-count\">10</span></button><button class=\"ds-chip\">Terisi <span class=\"ds-chip-count\">3</span></button><button class=\"ds-chip\">Kosong <span class=\"ds-chip-count\">4</span></button></div>",
+      "css": ".ds-chip-row { display: flex; gap: 8px; } .ds-chip { font: 700 13px/1 Inter, sans-serif; font-variant-numeric: tabular-nums; padding: 9px 14px; border-radius: 9999px; border: 1px solid var(--border, #e2e8f0); background: var(--card, #fff); color: var(--foreground, #0f172a); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background 150ms, border-color 150ms, color 150ms; } .ds-chip:hover { background: var(--secondary, #f1f5f9); } .ds-chip:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.35); } .ds-chip-active, .ds-chip-active:hover { background: var(--primary, #ea580c); border-color: var(--primary, #ea580c); color: var(--primary-foreground, #fff); } .ds-chip-count { opacity: 0.7; }"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The default working surface: white, 11.2px corners, hairline border, whisper shadow.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card-kicker\">Pendapatan Hari Ini</p><p class=\"ds-card-value\">Rp1.068.000</p><p class=\"ds-card-delta\">+12,4% vs kemarin</p></div>",
+      "css": ".ds-card { background: var(--card, #fff); color: var(--card-foreground, #0f172a); border: 1px solid var(--border, #e2e8f0); border-radius: 11.2px; padding: 16px; box-shadow: 0 2px 4px -1px rgba(15,23,42,0.06), 0 1px 2px -1px rgba(15,23,42,0.04); } .ds-card-kicker { font: 700 12px/1.4 Inter, sans-serif; color: var(--muted-foreground, #475569); margin: 0; } .ds-card-value { font: 800 24px/1.15 'Plus Jakarta Sans', Inter, sans-serif; font-variant-numeric: tabular-nums; margin: 8px 0 0; } .ds-card-delta { font: 400 12px/1.4 Inter, sans-serif; color: var(--muted-foreground, #475569); margin: 4px 0 0; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": null,
+      "description": "Pill search field used in every staff header, with ember focus ring.",
+      "html": "<div class=\"ds-input-search\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-3.5-3.5\"/></svg><input type=\"search\" placeholder=\"Cari order / meja...\" aria-label=\"Cari\"/></div>",
+      "css": ".ds-input-search { position: relative; display: inline-flex; align-items: center; color: var(--muted-foreground, #475569); } .ds-input-search svg { position: absolute; left: 12px; } .ds-input-search input { height: 36px; width: 240px; padding: 0 12px 0 34px; font: 400 14px/1 Inter, sans-serif; color: var(--foreground, #0f172a); background: var(--background, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-radius: 9999px; transition: border-color 150ms, box-shadow 150ms; } .ds-input-search input::placeholder { color: var(--muted-foreground, #475569); } .ds-input-search input:focus-visible { outline: none; border-color: var(--ring, #ea580c); box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.25); }"
+    },
+    {
+      "name": "Brand Wordmark",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Containerless RestoFlow wordmark from /logo.png: a 185:51 aspect-ratio crop that cuts the source canvas padding, shown at native ember orange.",
+      "html": "<span class=\"ds-brand\"><img src=\"/logo.png\" alt=\"RestoFlow\" /></span>",
+      "css": ".ds-brand { position: relative; display: block; aspect-ratio: 185 / 51; overflow: hidden; } .ds-brand img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }"
+    },
+    {
+      "name": "Status Badge (Status Triplet)",
+      "kind": "custom",
+      "refersTo": "status-badge",
+      "description": "Icon + label + color pill — the atomic status unit; color never travels alone.",
+      "html": "<div class=\"ds-status-row\"><span class=\"ds-status ds-status-ok\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"m8.5 12 2.5 2.5 4.5-5\"/></svg>Tersedia</span><span class=\"ds-status ds-status-wait\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 4v3M17 4v3M4 10h16M6 7h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z\"/></svg>Menunggu Bayar</span><span class=\"ds-status ds-status-busy\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3c1 3-2 4-2 7a4 4 0 0 0 8 0c0-2-1-3-2-4 2 1 4 3 4 6a8 8 0 0 1-16 0c0-5 6-7 8-9z\"/></svg>Terisi</span></div>",
+      "css": ".ds-status-row { display: flex; flex-wrap: wrap; gap: 8px; } .ds-status { display: inline-flex; align-items: center; gap: 5px; font: 700 12px/1 Inter, sans-serif; padding: 3px 8px; border-radius: 9999px; white-space: nowrap; } .ds-status-ok { background: var(--status-available-bg, #d1fae5); color: var(--status-available-fg, #065f46); } .ds-status-wait { background: var(--status-waiting-bg, #fef3c7); color: var(--status-waiting-fg, #92400e); } .ds-status-busy { background: var(--status-occupied-bg, #ffedd5); color: var(--status-occupied-fg, #9a3412); }"
+    },
+    {
+      "name": "Kitchen Docket",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "The kitchen ticket: timed header strip, station-tagged items, next-step pill.",
+      "html": "<article class=\"ds-docket\"><header class=\"ds-docket-head ds-docket-urgent\"><span class=\"ds-docket-table\">B01</span><span class=\"ds-docket-code\">ORD-20261006-003</span><span class=\"ds-docket-timer\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><circle cx=\"12\" cy=\"13\" r=\"8\"/><path d=\"M12 9v4l2.5 2.5M9 2h6\"/></svg>13:02</span></header><ul class=\"ds-docket-items\"><li><span class=\"ds-docket-qty\">1</span><span class=\"ds-docket-item\">Ayam Goreng Kremes<em class=\"ds-docket-station\">GRILL</em></span></li></ul><button class=\"ds-docket-action\">Terima</button></article>",
+      "css": ".ds-docket { width: 280px; background: var(--card, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 11.2px; overflow: hidden; box-shadow: 0 2px 4px -1px rgba(15,23,42,0.06), 0 1px 2px -1px rgba(15,23,42,0.04); font-family: Inter, sans-serif; } .ds-docket-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--secondary, #f1f5f9); } .ds-docket-urgent { background: var(--status-waiting-bg, #fef3c7); } .ds-docket-table { font: 800 14px 'Plus Jakarta Sans', sans-serif; } .ds-docket-code { font-size: 11px; color: var(--muted-foreground, #475569); } .ds-docket-timer { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font: 700 12px Inter, sans-serif; font-variant-numeric: tabular-nums; padding: 3px 8px; border-radius: 9999px; background: var(--status-error, #dc2626); color: #fff; } .ds-docket-items { list-style: none; margin: 0; padding: 0 12px; } .ds-docket-items li { display: flex; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border, #e2e8f0); } .ds-docket-qty { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 9999px; background: rgba(234, 88, 12, 0.1); color: var(--primary, #ea580c); font: 800 12px Inter, sans-serif; } .ds-docket-item { font: 600 14px/1.35 Inter, sans-serif; display: flex; flex-direction: column; gap: 4px; } .ds-docket-station { align-self: flex-start; font: 700 10px Inter, sans-serif; font-style: normal; letter-spacing: 0.04em; color: var(--muted-foreground, #475569); background: var(--secondary, #f1f5f9); padding: 2px 6px; border-radius: 4.8px; } .ds-docket-action { width: calc(100% - 24px); margin: 12px; padding: 10px; border: 1px solid var(--border, #e2e8f0); background: var(--secondary, #f1f5f9); border-radius: 9999px; font: 700 14px Inter, sans-serif; color: var(--foreground, #0f172a); cursor: pointer; transition: background 150ms; } .ds-docket-action:hover { background: var(--primary, #ea580c); color: #fff; border-color: var(--primary, #ea580c); } .ds-docket-action:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.35); }"
+    },
+    {
+      "name": "Table Tile (Cashier)",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Selectable table card with compact status, seats/area line, and live occupancy minutes.",
+      "html": "<button class=\"ds-table-tile\"><span class=\"ds-table-top\"><span class=\"ds-table-code\">A03</span><span class=\"ds-status ds-status-wait\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 4v3M17 4v3M4 10h16M6 7h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z\"/></svg>Menunggu Bayar</span></span><span class=\"ds-table-meta\">2 kursi &middot; Indoor</span><span class=\"ds-table-foot\"><span class=\"ds-status ds-status-busy\">Menunggu Bayar</span><span class=\"ds-table-mins\">108 mnt</span></span></button>",
+      "css": ".ds-table-tile { width: 230px; text-align: left; background: var(--card, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 11.2px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; font-family: Inter, sans-serif; transition: transform 150ms, border-color 150ms, box-shadow 150ms; box-shadow: 0 2px 4px -1px rgba(15,23,42,0.06), 0 1px 2px -1px rgba(15,23,42,0.04); } .ds-table-tile:hover { transform: translateY(-2px); border-color: rgba(234, 88, 12, 0.4); } .ds-table-tile:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.35); } .ds-table-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; } .ds-table-code { font: 800 18px 'Plus Jakarta Sans', sans-serif; } .ds-table-meta { font: 400 12px Inter, sans-serif; color: var(--muted-foreground, #475569); } .ds-table-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; margin-top: 4px; } .ds-table-mins { font: 700 12px Inter, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted-foreground, #475569); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Warm Pass",
+    "overview": "RestoFlow is an operations suite dressed as hospitality: the mental model is the kitchen pass during service — dockets line up, timers tick, statuses flip — but the surfaces stay warm and porcelain-clean instead of industrial gray. Every screen is built to be read in one glance under pressure: a status triplet (icon + label + color), tabular numbers that never jitter, and one ember accent that always means \"act here\". The system refuses dashboard-sterile coldness and equally refuses restaurant-cliché decoration (no food photography, no script fonts, no gingham): warmth comes from color temperature and rounded, tactile geometry, not ornament.\n\nDensity is operational but humane — staff screens (kitchen, cashier, admin) pack more per viewport with sticky chrome and multi-column grids; customer screens stay airy, single-column, and thumb-first. Depth is almost flat at rest: thin slate borders and a whisper of two-layer offset shadow, with lift reserved for hover and the floating cart bar. Motion is one authored moment — a soft decelerating rise — so live data updates feel alive without becoming a casino.",
+    "keyCharacteristics": [
+      "One ember accent (#ea580c) for primary action and \"your table is occupied\"",
+      "Status is never color alone: icon + label + color, always, everywhere",
+      "Tabular numerals on every price, timer, and quantity",
+      "Pill geometry for anything tappable; gently rounded rects (11.2px) for surfaces",
+      "Warm porcelain canvas (#f8fafc), white cards, thin slate borders (#e2e8f0)",
+      "Plus Jakarta Sans headings against Inter body — confident, not corporate"
+    ],
+    "rules": [
+      {
+        "name": "The Status Triplet Rule",
+        "body": "A status may never be communicated by color alone. Every status indicator ships as icon + text label + color, on light or dark surface, in every role's view.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ember Scarcity Rule",
+        "body": "Hearth Ember marks action or your own occupancy — never a decorative background, never a large fill, never body text. If a screen looks orange, something on it is asking to be tapped.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Any number a user compares across rows or watches tick — prices, timers, quantities, stock, seat counts — renders with font-variant-numeric: tabular-nums (the tnum utility). Proportional digits are only for prose.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-At-Rest Rule",
+        "body": "Nothing casts a shadow as decoration. At rest a card is separated by border and tone; shadow appears only under hover, overlay, or a genuinely floating element.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** pair every status color with an icon and a text label (Status Triplet).",
+      "**Do** use `tnum` tabular figures for prices, timers, quantities, stock, and seat counts.",
+      "**Do** keep primary actions in Hearth Ember pills and everything tappable in pill geometry.",
+      "**Do** separate surfaces with porcelain-vs-white tone plus a 1px `#e2e8f0` border before reaching for shadow.",
+      "**Do** keep customer screens in the centered `max-w-lg` column and staff screens in their role's grid (kitchen 4-col, cashier 1fr+400px, admin sidebar).",
+      "**Do** set headings in Plus Jakarta Sans at 800 and body in Inter at 14px."
+    ],
+    "donts": [
+      "**Don't** communicate state with color alone — no bare colored dots or fills standing in for a status.",
+      "**Don't** spend Hearth Ember on decoration: no orange page backgrounds, orange body text, or orange separators.",
+      "**Don't** use proportional numerals in tables, timers, or price columns.",
+      "**Don't** add shadows at rest, glows on ordinary cards, or a second accent gradient — the ember float is the only glowing treatment.",
+      "**Don't** introduce food photography, script display faces, or ornamental textures; the warmth comes from temperature, type, and geometry.",
+      "**Don't** shrink hit targets below 32px or truncate a status label — let the row wrap instead."
+    ]
+  }
+}

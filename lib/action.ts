@@ -6,6 +6,7 @@ import { signIn, signOut } from "@/auth";
 import { AuthError } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { isUserRole, ROLE_PATH } from "@/lib/auth-types";
+import { removeProductImage } from "@/lib/supabase-storage";
 
 export const loginAction = async (_prevState: { error?: string }, formData: FormData): Promise<{ error?: string }> => {
   const email = formData.get("email");
@@ -185,4 +186,221 @@ export const deleteCategoryAction = async (
 
   revalidatePath("/admin/categories");
   redirect("/admin/categories");
+};
+
+export interface ProductFormState {
+  error?: string;
+}
+
+function parseProductForm(
+  formData: FormData
+):
+  | {
+      name: string;
+      description: string;
+      categoryId: string;
+      price: number;
+      imageUrl: string;
+    }
+  | { error: string } {
+  const name = formData.get("name");
+  const description = formData.get("description");
+  const categoryId = formData.get("categoryId");
+  const priceRaw = formData.get("price");
+  const imageUrl = formData.get("imageUrl");
+
+  if (typeof name !== "string" || name.trim().length < 2) {
+    return { error: "Nama produk wajib diisi (min. 2 karakter)." };
+  }
+
+  if (typeof description !== "string" || description.trim().length < 5) {
+    return { error: "Deskripsi wajib diisi (min. 5 karakter)." };
+  }
+
+  if (typeof categoryId !== "string" || !categoryId.trim()) {
+    return { error: "Kategori wajib dipilih." };
+  }
+
+  if (typeof priceRaw !== "string" || !/^\d+$/.test(priceRaw.trim())) {
+    return { error: "Harga harus berupa angka. Isi bagian Harga terlebih dahulu." };
+  }
+
+  const price = Number.parseInt(priceRaw.trim(), 10);
+  if (!Number.isSafeInteger(price) || price <= 0) {
+    return { error: "Harga harus lebih dari 0." };
+  }
+
+  if (typeof imageUrl !== "string" || !imageUrl.trim()) {
+    return { error: "Gambar produk wajib diunggah terlebih dahulu." };
+  }
+
+  return {
+    name: name.trim(),
+    description: description.trim(),
+    categoryId: categoryId.trim(),
+    price,
+    imageUrl: imageUrl.trim(),
+  };
+}
+
+/** Hanya URL publik milik bucket gambar produk kita yang boleh tersimpan. */
+function isValidProductImageUrl(imageUrl: string): boolean {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const bucket = process.env.NEXT_PUBLIC_SUPABASE_BUCKET;
+
+  if (!supabaseUrl || !bucket) return false;
+
+  const prefix = `${supabaseUrl}/storage/v1/object/public/${bucket}/`;
+  return imageUrl.startsWith(prefix) && imageUrl.length > prefix.length;
+}
+
+export const createProductAction = async (
+  _prevState: ProductFormState,
+  formData: FormData
+): Promise<ProductFormState> => {
+  const parsed = parseProductForm(formData);
+  if ("error" in parsed) return parsed;
+
+  if (!isValidProductImageUrl(parsed.imageUrl)) {
+    return { error: "Tautan gambar tidak valid. Unggah ulang gambar produk." };
+  }
+
+  const slug = slugify(parsed.name);
+  if (!slug) {
+    return { error: "Slug tidak valid. Gunakan huruf, angka, atau tanda minus." };
+  }
+
+  try {
+    const [existingSlug, category] = await Promise.all([
+      prisma.product.findUnique({ where: { slug } }),
+      prisma.category.findUnique({ where: { id: parsed.categoryId } }),
+    ]);
+
+    if (!category) {
+      return { error: "Kategori tidak ditemukan. Pilih kategori lain." };
+    }
+
+    if (existingSlug) {
+      return { error: `Slug "${slug}" sudah dipakai produk lain.` };
+    }
+
+    await prisma.product.create({
+      data: {
+        name: parsed.name,
+        slug,
+        description: parsed.description,
+        price: parsed.price,
+        categoryId: parsed.categoryId,
+        imageUrl: parsed.imageUrl,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return { error: "Gagal menyimpan produk. Coba lagi." };
+  }
+
+  revalidatePath("/admin/menu");
+  redirect("/admin/menu");
+};
+
+export const updateProductAction = async (
+  _prevState: ProductFormState,
+  formData: FormData
+): Promise<ProductFormState> => {
+  const id = readFormId(formData);
+  if (!id) return { error: "Produk tidak ditemukan." };
+
+  const parsed = parseProductForm(formData);
+  if ("error" in parsed) return parsed;
+
+  if (!isValidProductImageUrl(parsed.imageUrl)) {
+    return { error: "Tautan gambar tidak valid. Unggah ulang gambar produk." };
+  }
+
+  const slug = slugify(parsed.name);
+  if (!slug) {
+    return { error: "Slug tidak valid. Gunakan huruf, angka, atau tanda minus." };
+  }
+
+  let oldImageUrl: string | null = null;
+
+  try {
+    const [current, category] = await Promise.all([
+      prisma.product.findUnique({ where: { id } }),
+      prisma.category.findUnique({ where: { id: parsed.categoryId } }),
+    ]);
+
+    if (!current) return { error: "Produk tidak ditemukan." };
+
+    if (!category) {
+      return { error: "Kategori tidak ditemukan. Pilih kategori lain." };
+    }
+
+    // Slug tetap derived dari nama — dup hanya dicek bila slug berubah.
+    if (slug !== current.slug) {
+      const dup = await prisma.product.findUnique({ where: { slug } });
+      if (dup && dup.id !== id) {
+        return { error: `Slug "${slug}" sudah dipakai produk lain.` };
+      }
+    }
+
+    oldImageUrl = current.imageUrl;
+
+    await prisma.product.update({
+      where: { id },
+      data: {
+        name: parsed.name,
+        slug,
+        description: parsed.description,
+        price: parsed.price,
+        categoryId: parsed.categoryId,
+        imageUrl: parsed.imageUrl,
+      },
+    });
+  } catch (error) {
+    console.error("[action] updateProduct gagal:", error);
+    return { error: "Gagal menyimpan perubahan. Coba lagi." };
+  }
+
+  // Berkas lama hanya dibuang bila URL benar-benar berubah, dan hanya setelah
+  // update sukses — baris tidak pernah merujuk berkas yang sudah dihapus.
+  if (oldImageUrl && oldImageUrl !== parsed.imageUrl) {
+    await removeProductImage(oldImageUrl);
+  }
+
+  revalidatePath("/admin/menu");
+  redirect("/admin/menu");
+};
+
+export interface ProductDeleteState {
+  error?: string;
+}
+
+export const deleteProductAction = async (
+  _prevState: ProductDeleteState,
+  formData: FormData
+): Promise<ProductDeleteState> => {
+  const id = readFormId(formData);
+  if (!id) return { error: "Produk tidak ditemukan." };
+
+  let imageUrl: string | null = null;
+
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: { imageUrl: true },
+    });
+    if (!product) return { error: "Produk tidak ditemukan." };
+
+    imageUrl = product.imageUrl;
+    await prisma.product.delete({ where: { id } });
+  } catch (error) {
+    console.error("[action] deleteProduct gagal:", error);
+    return { error: "Gagal menghapus produk. Coba lagi." };
+  }
+
+  if (imageUrl) await removeProductImage(imageUrl);
+
+  revalidatePath("/admin/menu");
+  return {};
 };

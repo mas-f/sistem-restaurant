@@ -1,4 +1,4 @@
-import { CategoriesScreen } from "@/components/admin/categories-screen";
+import { CategoriesScreen } from "@/components/admin/category/categories-screen";
 import { prisma } from "@/lib/prisma";
 
 export const instant = false;

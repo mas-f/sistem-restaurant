@@ -303,6 +303,75 @@ export const createProductAction = async (
   redirect("/admin/menu");
 };
 
+export const updateProductAction = async (
+  _prevState: ProductFormState,
+  formData: FormData
+): Promise<ProductFormState> => {
+  const id = readFormId(formData);
+  if (!id) return { error: "Produk tidak ditemukan." };
+
+  const parsed = parseProductForm(formData);
+  if ("error" in parsed) return parsed;
+
+  if (!isValidProductImageUrl(parsed.imageUrl)) {
+    return { error: "Tautan gambar tidak valid. Unggah ulang gambar produk." };
+  }
+
+  const slug = slugify(parsed.name);
+  if (!slug) {
+    return { error: "Slug tidak valid. Gunakan huruf, angka, atau tanda minus." };
+  }
+
+  let oldImageUrl: string | null = null;
+
+  try {
+    const [current, category] = await Promise.all([
+      prisma.product.findUnique({ where: { id } }),
+      prisma.category.findUnique({ where: { id: parsed.categoryId } }),
+    ]);
+
+    if (!current) return { error: "Produk tidak ditemukan." };
+
+    if (!category) {
+      return { error: "Kategori tidak ditemukan. Pilih kategori lain." };
+    }
+
+    // Slug tetap derived dari nama — dup hanya dicek bila slug berubah.
+    if (slug !== current.slug) {
+      const dup = await prisma.product.findUnique({ where: { slug } });
+      if (dup && dup.id !== id) {
+        return { error: `Slug "${slug}" sudah dipakai produk lain.` };
+      }
+    }
+
+    oldImageUrl = current.imageUrl;
+
+    await prisma.product.update({
+      where: { id },
+      data: {
+        name: parsed.name,
+        slug,
+        description: parsed.description,
+        price: parsed.price,
+        categoryId: parsed.categoryId,
+        imageUrl: parsed.imageUrl,
+      },
+    });
+  } catch (error) {
+    console.error("[action] updateProduct gagal:", error);
+    return { error: "Gagal menyimpan perubahan. Coba lagi." };
+  }
+
+  // Berkas lama hanya dibuang bila URL benar-benar berubah, dan hanya setelah
+  // update sukses — baris tidak pernah merujuk berkas yang sudah dihapus.
+  if (oldImageUrl && oldImageUrl !== parsed.imageUrl) {
+    await removeProductImage(oldImageUrl);
+  }
+
+  revalidatePath("/admin/menu");
+  redirect("/admin/menu");
+};
+
 export interface ProductDeleteState {
   error?: string;
 }

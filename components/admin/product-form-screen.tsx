@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createProductAction } from "@/lib/action";
+import { createProductAction, updateProductAction } from "@/lib/action";
 import {
   PRODUCT_IMAGE_ACCEPT,
   PRODUCT_IMAGE_MAX_LABEL,
@@ -28,6 +28,15 @@ import { cn } from "@/lib/utils";
 export interface CategoryOption {
   id: string;
   name: string;
+}
+
+export interface ProductFormData {
+  id: string;
+  name: string;
+  description: string;
+  categoryId: string;
+  price: number;
+  imageUrl: string;
 }
 
 const slugify = (value: string) =>
@@ -43,16 +52,33 @@ const formatRupiah = (digits: string) =>
 
 const DESCRIPTION_MAX = 400;
 
-export function ProductFormScreen({ categories }: { categories: CategoryOption[] }) {
-  const [state, formAction, pending] = useActionState(createProductAction, {});
+export function ProductFormScreen({
+  categories,
+  product,
+}: {
+  categories: CategoryOption[];
+  product?: ProductFormData;
+}) {
+  const [state, formAction, pending] = useActionState(
+    product ? updateProductAction : createProductAction,
+    {}
+  );
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [priceDigits, setPriceDigits] = useState("");
+  const [name, setName] = useState(product?.name ?? "");
+  const [description, setDescription] = useState(product?.description ?? "");
+  const [categoryId, setCategoryId] = useState(product?.categoryId ?? "");
+  const [priceDigits, setPriceDigits] = useState(
+    product ? String(product.price) : ""
+  );
 
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  // Di mode edit, gambar yang sudah ada di database langsung dijadikan
+  // pratinjau sekaligus nilai awal imageUrl.
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    product?.imageUrl ?? null
+  );
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    product?.imageUrl ?? null
+  );
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -60,7 +86,10 @@ export function ProductFormScreen({ categories }: { categories: CategoryOption[]
 
   const inputRef = useRef<HTMLInputElement>(null);
   const blobUrlRef = useRef<string | null>(null);
-  const publicUrlRef = useRef<string | null>(null);
+  const publicUrlRef = useRef<string | null>(product?.imageUrl ?? null);
+  // Berkas milik database tidak boleh disentuh cleanup klien — hanya file
+  // yang di-upload di sesi ini yang boleh dibuang saat ganti/hapus/Batal.
+  const originalUrlRef = useRef<string | null>(product?.imageUrl ?? null);
   const uploadTokenRef = useRef(0);
 
   const previewSlug = slugify(name);
@@ -84,7 +113,10 @@ export function ProductFormScreen({ categories }: { categories: CategoryOption[]
   const discardUpload = () => {
     const previousUrl = publicUrlRef.current;
     setPublicUrl(null);
-    if (previousUrl) void removeProductImage(previousUrl);
+    // Berkas lama dari database hanya dihapus server-side oleh updateProductAction.
+    if (previousUrl && previousUrl !== originalUrlRef.current) {
+      void removeProductImage(previousUrl);
+    }
   };
 
   const handleFile = async (file: File | null | undefined) => {
@@ -149,10 +181,12 @@ export function ProductFormScreen({ categories }: { categories: CategoryOption[]
     <div className="space-y-5">
       <div>
         <h1 className="font-heading text-2xl font-extrabold text-balance">
-          Tambah Produk
+          {product ? "Edit Produk" : "Tambah Produk"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Lengkapi detail menu, lalu unggah foto supaya tamu mudah memilih.
+          {product
+            ? "Perbarui detail menu. Slug otomatis mengikuti nama, dan gambar lama hanya diganti bila kamu unggah yang baru."
+            : "Lengkapi detail menu, lalu unggah foto supaya tamu mudah memilih."}
         </p>
       </div>
 
@@ -160,6 +194,7 @@ export function ProductFormScreen({ categories }: { categories: CategoryOption[]
         action={formAction}
         className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-xs"
       >
+        {product ? <input type="hidden" name="id" value={product.id} /> : null}
         <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
         <input type="hidden" name="categoryId" value={categoryId} />
 
@@ -427,6 +462,8 @@ export function ProductFormScreen({ categories }: { categories: CategoryOption[]
                 <Loader2 className="size-4 animate-spin" />
                 Menyimpan…
               </>
+            ) : product ? (
+              "Simpan Perubahan"
             ) : (
               "Simpan Produk"
             )}

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, ImageOff, Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImageOff, Pencil, Plus, Search } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { ProductDeleteButton } from "@/components/admin/product-delete-button";
 import { cn, rupiah } from "@/lib/utils";
@@ -230,7 +230,15 @@ export function MenuListScreen({
                   {/* Status — dikomentari: menunggu field availability di schema Product.
                   <td className="px-4 py-3">…</td> */}
                   <td className="px-4 py-3">
-                    <div className="flex justify-end">
+                    <div className="flex items-center justify-end gap-1">
+                      <Link
+                        href={`/admin/menu/${product.id}/edit`}
+                        aria-label={`Edit ${product.name}`}
+                        title={`Edit ${product.name}`}
+                        className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                      >
+                        <Pencil className="size-4" aria-hidden />
+                      </Link>
                       <ProductDeleteButton
                         productId={product.id}
                         productName={product.name}

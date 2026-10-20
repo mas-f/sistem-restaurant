@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, ImageOff, Plus, Search } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { ProductDeleteButton } from "@/components/admin/product-delete-button";
 import { cn, rupiah } from "@/lib/utils";
 
 export interface MenuProductRow {
@@ -197,6 +198,7 @@ export function MenuListScreen({
                 <th className="px-4 py-2.5 text-right">Harga</th>
                 {/* Status — dikomentari: field availability/popular belum ada di schema Product.
                 <th className="px-4 py-2.5">Status</th> */}
+                <th className="px-4 py-2.5 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -227,6 +229,14 @@ export function MenuListScreen({
                   </td>
                   {/* Status — dikomentari: menunggu field availability di schema Product.
                   <td className="px-4 py-3">…</td> */}
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end">
+                      <ProductDeleteButton
+                        productId={product.id}
+                        productName={product.name}
+                      />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

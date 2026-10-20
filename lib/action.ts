@@ -6,6 +6,7 @@ import { signIn, signOut } from "@/auth";
 import { AuthError } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { isUserRole, ROLE_PATH } from "@/lib/auth-types";
+import { removeProductImage } from "@/lib/supabase-storage";
 
 export const loginAction = async (_prevState: { error?: string }, formData: FormData): Promise<{ error?: string }> => {
   const email = formData.get("email");
@@ -300,4 +301,37 @@ export const createProductAction = async (
 
   revalidatePath("/admin/menu");
   redirect("/admin/menu");
+};
+
+export interface ProductDeleteState {
+  error?: string;
+}
+
+export const deleteProductAction = async (
+  _prevState: ProductDeleteState,
+  formData: FormData
+): Promise<ProductDeleteState> => {
+  const id = readFormId(formData);
+  if (!id) return { error: "Produk tidak ditemukan." };
+
+  let imageUrl: string | null = null;
+
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: { imageUrl: true },
+    });
+    if (!product) return { error: "Produk tidak ditemukan." };
+
+    imageUrl = product.imageUrl;
+    await prisma.product.delete({ where: { id } });
+  } catch (error) {
+    console.error("[action] deleteProduct gagal:", error);
+    return { error: "Gagal menghapus produk. Coba lagi." };
+  }
+
+  if (imageUrl) await removeProductImage(imageUrl);
+
+  revalidatePath("/admin/menu");
+  return {};
 };

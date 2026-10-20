@@ -186,3 +186,118 @@ export const deleteCategoryAction = async (
   revalidatePath("/admin/categories");
   redirect("/admin/categories");
 };
+
+export interface ProductFormState {
+  error?: string;
+}
+
+function parseProductForm(
+  formData: FormData
+):
+  | {
+      name: string;
+      description: string;
+      categoryId: string;
+      price: number;
+      imageUrl: string;
+    }
+  | { error: string } {
+  const name = formData.get("name");
+  const description = formData.get("description");
+  const categoryId = formData.get("categoryId");
+  const priceRaw = formData.get("price");
+  const imageUrl = formData.get("imageUrl");
+
+  if (typeof name !== "string" || name.trim().length < 2) {
+    return { error: "Nama produk wajib diisi (min. 2 karakter)." };
+  }
+
+  if (typeof description !== "string" || description.trim().length < 5) {
+    return { error: "Deskripsi wajib diisi (min. 5 karakter)." };
+  }
+
+  if (typeof categoryId !== "string" || !categoryId.trim()) {
+    return { error: "Kategori wajib dipilih." };
+  }
+
+  if (typeof priceRaw !== "string" || !/^\d+$/.test(priceRaw.trim())) {
+    return { error: "Harga harus berupa angka. Isi bagian Harga terlebih dahulu." };
+  }
+
+  const price = Number.parseInt(priceRaw.trim(), 10);
+  if (!Number.isSafeInteger(price) || price <= 0) {
+    return { error: "Harga harus lebih dari 0." };
+  }
+
+  if (typeof imageUrl !== "string" || !imageUrl.trim()) {
+    return { error: "Gambar produk wajib diunggah terlebih dahulu." };
+  }
+
+  return {
+    name: name.trim(),
+    description: description.trim(),
+    categoryId: categoryId.trim(),
+    price,
+    imageUrl: imageUrl.trim(),
+  };
+}
+
+/** Hanya URL publik milik bucket gambar produk kita yang boleh tersimpan. */
+function isValidProductImageUrl(imageUrl: string): boolean {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const bucket = process.env.NEXT_PUBLIC_SUPABASE_BUCKET;
+
+  if (!supabaseUrl || !bucket) return false;
+
+  const prefix = `${supabaseUrl}/storage/v1/object/public/${bucket}/`;
+  return imageUrl.startsWith(prefix) && imageUrl.length > prefix.length;
+}
+
+export const createProductAction = async (
+  _prevState: ProductFormState,
+  formData: FormData
+): Promise<ProductFormState> => {
+  const parsed = parseProductForm(formData);
+  if ("error" in parsed) return parsed;
+
+  if (!isValidProductImageUrl(parsed.imageUrl)) {
+    return { error: "Tautan gambar tidak valid. Unggah ulang gambar produk." };
+  }
+
+  const slug = slugify(parsed.name);
+  if (!slug) {
+    return { error: "Slug tidak valid. Gunakan huruf, angka, atau tanda minus." };
+  }
+
+  try {
+    const [existingSlug, category] = await Promise.all([
+      prisma.product.findUnique({ where: { slug } }),
+      prisma.category.findUnique({ where: { id: parsed.categoryId } }),
+    ]);
+
+    if (!category) {
+      return { error: "Kategori tidak ditemukan. Pilih kategori lain." };
+    }
+
+    if (existingSlug) {
+      return { error: `Slug "${slug}" sudah dipakai produk lain.` };
+    }
+
+    await prisma.product.create({
+      data: {
+        name: parsed.name,
+        slug,
+        description: parsed.description,
+        price: parsed.price,
+        categoryId: parsed.categoryId,
+        imageUrl: parsed.imageUrl,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return { error: "Gagal menyimpan produk. Coba lagi." };
+  }
+
+  revalidatePath("/admin/menu");
+  redirect("/admin/menu");
+};

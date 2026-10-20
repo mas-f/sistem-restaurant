@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Pencil, Plus, Search } from "lucide-react";
 import { categories, products, rupiah } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
@@ -25,9 +26,12 @@ export function MenuAdminScreen() {
             {products.length} produk terdaftar.
           </p>
         </div>
-        <button className="flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+        <Link
+          href="/admin/menu/create"
+          className="flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
           <Plus className="size-4" aria-hidden /> Tambah Produk
-        </button>
+        </Link>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

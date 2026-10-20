@@ -45,15 +45,15 @@ model Account {
 }
 
 model Product {
-  id          String @id @default(uuid())
+  id          String   @id @default(uuid())
   categoryId  String
   name        String
   slug        String
   description String
   price       Int
   imageUrl    String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   category Category @relation(fields: [categoryId], references: [id])
 
@@ -70,4 +70,23 @@ model Category {
   products  Product[]
 
   @@unique([slug])
+}
+
+enum TableStatus {
+  available
+  occupied
+  waiting_payment
+  reserved
+  cleaning
+}
+
+model DiningTable {
+  id           String      @id @default(uuid())
+  code         String      @unique
+  seats        Int
+  area         String
+  status       TableStatus @default(available)
+  sessionToken String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }

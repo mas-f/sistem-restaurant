@@ -1,6 +1,7 @@
 "use client";
 
-import { QrCode, Users } from "lucide-react";
+import Link from "next/link";
+import { Plus, Users } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { TimeLabel } from "@/components/time-label";
 import { useStore } from "@/lib/store";
@@ -18,12 +19,12 @@ export function TablesScreen() {
             Kelola status &amp; kapasitas meja.
           </p>
         </div>
-        <a
-          href="/admin/tables/qr"
+        <Link
+          href="/admin/tables/create"
           className="flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
-          <QrCode className="size-4" aria-hidden /> Kelola QR
-        </a>
+          <Plus className="size-4" aria-hidden /> Tambah Meja
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">

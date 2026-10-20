@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { signIn, signOut } from "@/auth";
 import { AuthError } from "next-auth";
+import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isUserRole, ROLE_PATH } from "@/lib/auth-types";
 import { removeProductImage } from "@/lib/supabase-storage";
@@ -403,4 +404,77 @@ export const deleteProductAction = async (
 
   revalidatePath("/admin/menu");
   return {};
+};
+
+export interface TableFormState {
+  error?: string;
+}
+
+const TABLE_CODE_MAX = 10;
+const TABLE_SEATS_MAX = 50;
+
+function parseTableForm(
+  formData: FormData
+): { code: string; seats: number; area: string } | { error: string } {
+  const code = formData.get("code");
+  const seatsRaw = formData.get("seats");
+  const area = formData.get("area");
+
+  if (typeof code !== "string" || !code.trim()) {
+    return { error: "Kode meja wajib diisi." };
+  }
+
+  // Kode meja sering diketik manual di kasir — seragamkan jadi huruf kapital.
+  const trimmedCode = code.trim().toUpperCase();
+
+  if (trimmedCode.length > TABLE_CODE_MAX) {
+    return { error: `Kode meja maksimal ${TABLE_CODE_MAX} karakter.` };
+  }
+
+  if (typeof seatsRaw !== "string" || !/^\d+$/.test(seatsRaw.trim())) {
+    return { error: "Kapasitas kursi harus berupa angka. Isi bagian Kapasitas Kursi terlebih dahulu." };
+  }
+
+  const seats = Number.parseInt(seatsRaw.trim(), 10);
+  if (!Number.isSafeInteger(seats) || seats < 1 || seats > TABLE_SEATS_MAX) {
+    return { error: `Kapasitas kursi harus antara 1 dan ${TABLE_SEATS_MAX}.` };
+  }
+
+  if (typeof area !== "string" || area.trim().length < 2) {
+    return { error: "Area wajib diisi (min. 2 karakter)." };
+  }
+
+  return { code: trimmedCode, seats, area: area.trim() };
+}
+
+export const createTableAction = async (
+  _prevState: TableFormState,
+  formData: FormData
+): Promise<TableFormState> => {
+  const parsed = parseTableForm(formData);
+  if ("error" in parsed) return { error: parsed.error };
+
+  const { code, seats, area } = parsed;
+
+  try {
+    const existing = await prisma.diningTable.findUnique({ where: { code } });
+    if (existing) {
+      return { error: `Kode meja "${code}" sudah dipakai meja lain.` };
+    }
+
+    // Meja baru selalu tersedia; status dan sesi dikelola dari halaman meja.
+    await prisma.diningTable.create({
+      data: { code, seats, area, status: "available" },
+    });
+  } catch (error) {
+    // Jaring kasus langka: kode dipakai di antara cek dan insert (unique constraint).
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { error: `Kode meja "${code}" sudah dipakai meja lain.` };
+    }
+    console.error("[action] createTable gagal:", error);
+    return { error: "Gagal menyimpan meja. Coba lagi." };
+  }
+
+  revalidatePath("/admin/tables");
+  redirect("/admin/tables");
 };

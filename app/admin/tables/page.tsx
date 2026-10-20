@@ -1,4 +1,4 @@
-import { TablesScreen } from "@/components/admin/tables-screen";
+import { TablesScreen } from "@/components/admin/table/tables-screen";
 
 export default function Page() {
   return <TablesScreen />;

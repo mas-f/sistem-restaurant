@@ -478,3 +478,35 @@ export const createTableAction = async (
   revalidatePath("/admin/tables");
   redirect("/admin/tables");
 };
+
+export const deleteTableAction = async (
+  _prevState: TableFormState,
+  formData: FormData
+): Promise<TableFormState> => {
+  const id = readFormId(formData);
+  if (!id) return { error: "Meja tidak ditemukan." };
+
+  try {
+    const table = await prisma.diningTable.findUnique({
+      where: { id },
+      select: { code: true, status: true },
+    });
+    if (!table) return { error: "Meja tidak ditemukan." };
+
+    // Meja yang sedang dipakai tamu tidak boleh hilang begitu saja —
+    // sesinya harus diselesaikan dulu lewat alur kasir.
+    if (table.status === "occupied" || table.status === "waiting_payment") {
+      return {
+        error: `Meja ${table.code} sedang terisi — selesaikan sesinya dulu sebelum menghapus.`,
+      };
+    }
+
+    await prisma.diningTable.delete({ where: { id } });
+  } catch (error) {
+    console.error("[action] deleteTable gagal:", error);
+    return { error: "Gagal menghapus meja. Coba lagi." };
+  }
+
+  revalidatePath("/admin/tables");
+  return {};
+};

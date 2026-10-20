@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus, Users } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
+import { TableDeleteButton } from "@/components/admin/table/table-delete-button";
 import type { DiningTable } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +38,10 @@ export function TablesScreen({ tables }: { tables: DiningTable[] }) {
                 <span className="font-heading text-xl font-extrabold">
                   {t.code}
                 </span>
-                <StatusBadge status={t.status} compact />
+                <span className="flex items-center gap-1">
+                  <StatusBadge status={t.status} compact />
+                  <TableDeleteButton tableId={t.id} tableCode={t.code} />
+                </span>
               </div>
               <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Users className="size-3.5" aria-hidden />

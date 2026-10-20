@@ -35,8 +35,8 @@ export default async function TablesPage() {
     seats: row.seats,
     area: row.area,
     status: DB_STATUS_TO_UI[row.status],
-    // Nullable di database; tipe domain memakai string kosong untuk "tanpa sesi".
-    sessionToken: row.sessionToken ?? "",
+    // Nullable di database sebelum migrasi 20261020182150; kini selalu terisi.
+    sessionToken: row.sessionToken,
   }));
 
   return <TablesScreen tables={tables} />;

@@ -95,7 +95,10 @@ export function CartScreen({
           </div>
         </div>
         <div className="animate-rise stagger-3 flex w-full flex-col gap-2">
-          <Link href={`/order/${encodeURIComponent(successId)}`} className="w-full">
+          <Link
+            href={`/order/${encodeURIComponent(successId)}?token=${encodeURIComponent(tableToken)}`}
+            className="w-full"
+          >
             <Button className="h-12 w-full rounded-full text-sm font-bold">
               Lacak Pesanan
             </Button>

@@ -27,35 +27,35 @@ const groups: {
   label: string;
   items: { href: string; label: string; icon: typeof Users }[];
 }[] = [
-  {
-    label: "Ringkasan",
-    items: [
-      { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/admin/orders", label: "Orders", icon: ClipboardList },
-      { href: "/admin/sales", label: "Sales", icon: BarChart3 },
-      { href: "/admin/payments", label: "Payments", icon: CreditCard },
-    ],
-  },
-  {
-    label: "Meja & Menu",
-    items: [
-      { href: "/admin/tables", label: "Meja", icon: Users },
-      { href: "/admin/tables/qr", label: "QR Meja", icon: QrCode },
-      { href: "/admin/menu", label: "Menu", icon: MenuIcon },
-      { href: "/admin/categories", label: "Kategori", icon: Tags },
-    ],
-  },
-  {
-    label: "Operasional",
-    items: [
-      { href: "/admin/inventory", label: "Inventaris", icon: Package },
-      { href: "/admin/suppliers", label: "Supplier", icon: Truck },
-      { href: "/admin/staff", label: "Staff", icon: Users },
-      { href: "/admin/shifts", label: "Shift", icon: CalendarClock },
-      { href: "/admin/settings", label: "Pengaturan", icon: Settings },
-    ],
-  },
-];
+    {
+      label: "Ringkasan",
+      items: [
+        { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/admin/orders", label: "Orders", icon: ClipboardList },
+        { href: "/admin/sales", label: "Sales", icon: BarChart3 },
+        { href: "/admin/payments", label: "Payments", icon: CreditCard },
+      ],
+    },
+    {
+      label: "Meja & Menu",
+      items: [
+        { href: "/admin/tables", label: "Meja", icon: Users },
+        { href: "/admin/qr-tables", label: "QR Meja", icon: QrCode },
+        { href: "/admin/menu", label: "Menu", icon: MenuIcon },
+        { href: "/admin/categories", label: "Kategori", icon: Tags },
+      ],
+    },
+    {
+      label: "Operasional",
+      items: [
+        { href: "/admin/inventory", label: "Inventaris", icon: Package },
+        { href: "/admin/suppliers", label: "Supplier", icon: Truck },
+        { href: "/admin/staff", label: "Staff", icon: Users },
+        { href: "/admin/shifts", label: "Shift", icon: CalendarClock },
+        { href: "/admin/settings", label: "Pengaturan", icon: Settings },
+      ],
+    },
+  ];
 
 export function AdminShell({
   children,

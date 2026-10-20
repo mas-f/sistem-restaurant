@@ -1,19 +1,22 @@
-import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { MenuScreen } from "@/components/customer/menu-screen";
-import { tables } from "@/lib/mock-data";
+import { resolveTableByToken } from "@/lib/resolve-table";
 
-async function TableContent({
+// Dinamis penuh (tanpa shell PPR): connection() + resolve token di level page,
+// bukan di dalam Suspense — supaya notFound() untuk QR basi mengirim status
+// 404 sungguhan, bukan shell 200 yang berisi konten 404.
+export const instant = false;
+
+export default async function TableOrderPage({
   params,
 }: {
   params: Promise<{ token: string }>;
 }) {
+  await connection();
   const { token } = await params;
-  const decoded = decodeURIComponent(token);
-  const table =
-    tables.find((t) => t.sessionToken === decoded) ??
-    tables.find((t) => t.code.toLowerCase() === decoded.toLowerCase()) ??
-    tables[0];
+  // Token QR dari database; fallback mock menjaga tautan lama tetap terbuka.
+  const table = await resolveTableByToken(token);
 
   if (!table) notFound();
 
@@ -23,31 +26,5 @@ async function TableContent({
       tableToken={table.sessionToken || table.code}
       guestLabel="Pesan langsung dari meja kamu — tanpa antre"
     />
-  );
-}
-
-function MenuFallback() {
-  return (
-    <div className="mx-auto min-h-dvh w-full max-w-3xl animate-pulse space-y-4 px-4 py-6">
-      <div className="h-12 rounded-xl bg-muted" />
-      <div className="h-10 rounded-full bg-muted" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-52 rounded-xl bg-muted" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export default function TableOrderPage({
-  params,
-}: {
-  params: Promise<{ token: string }>;
-}) {
-  return (
-    <Suspense fallback={<MenuFallback />}>
-      <TableContent params={params} />
-    </Suspense>
   );
 }

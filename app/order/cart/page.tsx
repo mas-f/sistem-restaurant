@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { CartScreen } from "@/components/customer/cart-screen";
-import { tables } from "@/lib/mock-data";
+import { fallbackMockTable, resolveTableByToken } from "@/lib/resolve-table";
 
 async function CartContent({
   searchParams,
@@ -8,11 +8,8 @@ async function CartContent({
   searchParams: Promise<{ token?: string }>;
 }) {
   const sp = await searchParams;
-  const decoded = sp.token ? decodeURIComponent(sp.token) : "";
-  const table =
-    (decoded && tables.find((t) => t.sessionToken === decoded)) ||
-    tables.find((t) => t.sessionToken) ||
-    tables[0];
+  // Token QR dari database; tautan tanpa token jatuh ke fallback demo.
+  const table = (await resolveTableByToken(sp.token)) ?? fallbackMockTable();
 
   return (
     <CartScreen

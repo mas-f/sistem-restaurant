@@ -462,9 +462,11 @@ export const createTableAction = async (
       return { error: `Kode meja "${code}" sudah dipakai meja lain.` };
     }
 
-    // Meja baru selalu tersedia; status dan sesi dikelola dari halaman meja.
+    // Meja baru selalu tersedia; status dikelola dari halaman meja. sessionToken
+    // adalah identitas publik pada payload QR — dibuat sekali di sini dan tidak
+    // berubah saat kode meja diganti, supaya QR yang sudah tercetak tetap sah.
     await prisma.diningTable.create({
-      data: { code, seats, area, status: "available" },
+      data: { code, seats, area, status: "available", sessionToken: crypto.randomUUID() },
     });
   } catch (error) {
     // Jaring kasus langka: kode dipakai di antara cek dan insert (unique constraint).

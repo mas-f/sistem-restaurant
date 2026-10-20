@@ -1,14 +1,19 @@
 import { Suspense } from "react";
 import { OrderTrackingScreen } from "@/components/customer/order-tracking-screen";
-import { tables } from "@/lib/mock-data";
+import { fallbackMockTable, resolveTableByToken } from "@/lib/resolve-table";
 
 async function TrackingContent({
   params,
+  searchParams,
 }: {
   params: Promise<{ orderId: string }>;
+  searchParams: Promise<{ token?: string }>;
 }) {
   const { orderId } = await params;
-  const table = tables.find((t) => t.sessionToken) ?? tables[0];
+  const sp = await searchParams;
+  // Token dibawa dari keranjang (…?token=) agar "Kembali ke Menu" membuka
+  // meja yang benar; tanpa token, tautan lama jatuh ke fallback demo.
+  const table = (await resolveTableByToken(sp.token)) ?? fallbackMockTable();
 
   return (
     <OrderTrackingScreen
@@ -30,12 +35,14 @@ function TrackingFallback() {
 
 export default function OrderTrackingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ orderId: string }>;
+  searchParams: Promise<{ token?: string }>;
 }) {
   return (
     <Suspense fallback={<TrackingFallback />}>
-      <TrackingContent params={params} />
+      <TrackingContent params={params} searchParams={searchParams} />
     </Suspense>
   );
 }

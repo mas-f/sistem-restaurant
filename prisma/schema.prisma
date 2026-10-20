@@ -86,7 +86,7 @@ model DiningTable {
   seats        Int
   area         String
   status       TableStatus @default(available)
-  sessionToken String?
+  sessionToken String      @unique
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 }

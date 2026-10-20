@@ -6,25 +6,45 @@ import { CircleAlert, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createTableAction } from "@/lib/action";
+import { createTableAction, updateTableAction } from "@/lib/action";
 
 const TABLE_CODE_MAX = 10;
 const TABLE_SEATS_MAX = 50;
 
-export function TableFormScreen({ areaSuggestions }: { areaSuggestions: string[] }) {
-  const [state, formAction, pending] = useActionState(createTableAction, {});
+export interface TableFormData {
+  id: string;
+  code: string;
+  seats: number;
+  area: string;
+}
 
-  const [code, setCode] = useState("");
-  const [seats, setSeats] = useState("");
-  const [area, setArea] = useState("");
+export function TableFormScreen({
+  areaSuggestions,
+  table,
+}: {
+  areaSuggestions: string[];
+  table?: TableFormData;
+}) {
+  const isEdit = Boolean(table);
+  const [state, formAction, pending] = useActionState(
+    isEdit ? updateTableAction : createTableAction,
+    {}
+  );
+
+  const [code, setCode] = useState(table?.code ?? "");
+  const [seats, setSeats] = useState(table ? String(table.seats) : "");
+  const [area, setArea] = useState(table?.area ?? "");
 
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="font-heading text-2xl font-extrabold">Tambah Meja</h1>
+        <h1 className="font-heading text-2xl font-extrabold">
+          {isEdit ? "Edit Meja" : "Tambah Meja"}
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Daftarkan meja baru beserta kapasitas dan areanya. Meja baru langsung
-          berstatus tersedia.
+          {isEdit
+            ? "Perbarui kode, kapasitas, atau area meja ini. Kode meja yang sudah tercetak QR perlu dicetak ulang."
+            : "Daftarkan meja baru beserta kapasitas dan areanya. Meja baru langsung berstatus tersedia."}
         </p>
       </div>
 
@@ -32,6 +52,8 @@ export function TableFormScreen({ areaSuggestions }: { areaSuggestions: string[]
         action={formAction}
         className="max-w-lg space-y-4 rounded-xl border border-border bg-card p-5 shadow-xs"
       >
+        {isEdit ? <input type="hidden" name="id" value={table!.id} /> : null}
+
         {state.error ? (
           <Alert variant="destructive" className="px-3 py-2.5 text-xs">
             <CircleAlert />
@@ -123,6 +145,8 @@ export function TableFormScreen({ areaSuggestions }: { areaSuggestions: string[]
                 <Loader2 className="size-4 animate-spin" />
                 Menyimpan...
               </>
+            ) : isEdit ? (
+              "Simpan Perubahan"
             ) : (
               "Simpan Meja"
             )}

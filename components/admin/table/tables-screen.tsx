@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Users } from "lucide-react";
+import { Pencil, Plus, Users } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { TableDeleteButton } from "@/components/admin/table/table-delete-button";
@@ -40,6 +40,14 @@ export function TablesScreen({ tables }: { tables: DiningTable[] }) {
                 </span>
                 <span className="flex items-center gap-1">
                   <StatusBadge status={t.status} compact />
+                  <Link
+                    href={`/admin/tables/${t.id}/edit`}
+                    aria-label={`Edit meja ${t.code}`}
+                    title={`Edit meja ${t.code}`}
+                    className="inline-flex size-7 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    <Pencil className="size-3.5" aria-hidden />
+                  </Link>
                   <TableDeleteButton tableId={t.id} tableCode={t.code} />
                 </span>
               </div>

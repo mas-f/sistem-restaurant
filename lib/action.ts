@@ -479,6 +479,58 @@ export const createTableAction = async (
   redirect("/admin/tables");
 };
 
+export const updateTableAction = async (
+  _prevState: TableFormState,
+  formData: FormData
+): Promise<TableFormState> => {
+  const id = readFormId(formData);
+  if (!id) return { error: "Meja tidak ditemukan." };
+
+  const parsed = parseTableForm(formData);
+  if ("error" in parsed) return { error: parsed.error };
+
+  const { code, seats, area } = parsed;
+
+  try {
+    const current = await prisma.diningTable.findUnique({
+      where: { id },
+      select: { code: true, status: true },
+    });
+    if (!current) return { error: "Meja tidak ditemukan." };
+
+    // Meja yang sedang dipakai tamu tidak boleh diubah — kode meja dipakai
+    // oleh struk dan QR yang sudah tercetak.
+    if (current.status === "occupied" || current.status === "waiting_payment") {
+      return {
+        error: `Meja ${current.code} sedang terisi — selesaikan sesinya dulu sebelum mengubah.`,
+      };
+    }
+
+    // Kode unik hanya perlu dicek bila kode berubah; kalau tidak, meja akan
+    // menemukan dirinya sendiri dan dianggap bentrok.
+    if (code !== current.code) {
+      const dup = await prisma.diningTable.findUnique({ where: { code } });
+      if (dup && dup.id !== id) {
+        return { error: `Kode meja "${code}" sudah dipakai meja lain.` };
+      }
+    }
+
+    await prisma.diningTable.update({
+      where: { id },
+      data: { code, seats, area },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { error: `Kode meja "${code}" sudah dipakai meja lain.` };
+    }
+    console.error("[action] updateTable gagal:", error);
+    return { error: "Gagal menyimpan perubahan. Coba lagi." };
+  }
+
+  revalidatePath("/admin/tables");
+  redirect("/admin/tables");
+};
+
 export const deleteTableAction = async (
   _prevState: TableFormState,
   formData: FormData

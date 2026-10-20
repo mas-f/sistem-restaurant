@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, ImageOff, Pencil, Plus, Search } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { ProductDeleteButton } from "@/components/admin/product-delete-button";
+import { ProductDeleteButton } from "@/components/admin/product/product-delete-button";
 import { cn, rupiah } from "@/lib/utils";
 
 export interface MenuProductRow {

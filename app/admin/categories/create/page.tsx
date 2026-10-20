@@ -1,4 +1,4 @@
-import { CategoryFormScreen } from "@/components/admin/category-form-screen";
+import { CategoryFormScreen } from "@/components/admin/category/category-form-screen";
 
 export default function CreateCategoryPage() {
   return <CategoryFormScreen />;

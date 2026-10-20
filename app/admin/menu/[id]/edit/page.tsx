@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ProductFormScreen } from "@/components/admin/product-form-screen";
+import { ProductFormScreen } from "@/components/admin/product/product-form-screen";
 import { prisma } from "@/lib/prisma";
 
 export const instant = false;

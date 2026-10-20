@@ -1,4 +1,4 @@
-import { MenuListScreen } from "@/components/admin/menu-list-screen";
+import { MenuListScreen } from "@/components/admin/product/menu-list-screen";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma/client";
 

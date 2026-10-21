@@ -295,6 +295,6 @@ export const shifts: Shift[] = [
   { id: "shf-8", staffId: "stf-3", date: dayStr(1), clockIn: "16:00", clockOut: "23:00" },
 ];
 
-export function rupiah(n: number): string {
-  return "Rp" + n.toLocaleString("id-ID");
-}
+// Formatter dipindah ke lib/format.ts; re-export menjaga import lama tetap
+// berjalan selama layar mock belum dimigrasikan.
+export { rupiah } from "./format";

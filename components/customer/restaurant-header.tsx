@@ -6,10 +6,10 @@ import { BrandLogo } from "@/components/brand-logo";
 
 export function RestaurantHeader({
   tableCode,
-  guests = 2,
+  seats,
 }: {
   tableCode: string;
-  guests?: number;
+  seats: number;
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
@@ -30,8 +30,8 @@ export function RestaurantHeader({
           )}
         >
           <span className="tnum">Meja {tableCode}</span>
-          <span aria-hidden className="text-xs font-medium opacity-70">
-            · {guests} tamu
+          <span className="text-xs font-medium opacity-70">
+            · {seats} kursi
           </span>
         </div>
       </div>

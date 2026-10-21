@@ -161,3 +161,22 @@ export interface Shift {
   clockIn: string;
   clockOut: string | null;
 }
+
+// View model khusus menu tamu yang kini dibaca dari database. Tipe `Product`
+// di atas tetap dipakai layar yang masih mock agar migrasi berjalan bertahap.
+export type MenuStation = "Grill" | "Wok" | "Bar";
+
+export interface MenuCategory {
+  id: string;
+  name: string;
+}
+
+export interface MenuProduct {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  categoryId: string;
+  station: MenuStation;
+}

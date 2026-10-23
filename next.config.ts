@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
+  experimental: {
+    agentUpgrade: "security",
+  },
   images: {
     // Gambar produk disimpan di Supabase Storage (bucket publik), sehingga
     // next/image perlu izin host-nya. pathname dibatasi ke endpoint publik saja.

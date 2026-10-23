@@ -23,7 +23,9 @@ export type BillStatus =
   | "PROCESSING"
   | "PAID";
 
-export type PaymentMethod = "CASH" | "QRIS" | "DEBIT" | "CREDIT" | "EWALLET";
+export type PaymentMethod = "QRIS" | "CASH";
+
+export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED";
 
 export type TrackingStep =
   | "ORDER_RECEIVED"
@@ -111,6 +113,7 @@ export interface OrderItem {
 export interface Order {
   id: string;
   code: string;
+  sessionId?: string;
   sessionToken: string;
   tableCode: string;
   items: OrderItem[];
@@ -118,6 +121,8 @@ export interface Order {
   status: OrderStatus;
   kitchenStatus: KitchenStatus;
   note: string;
+  subtotal?: number;
+  total?: number;
 }
 
 export interface Payment {
@@ -128,6 +133,49 @@ export interface Payment {
   amount: number;
   method: PaymentMethod;
   paidAt: string;
+}
+
+// View model pembayaran yang sudah dibaca dari database. Satu pembayaran
+// terikat ke sesi meja dan bisa mencakup beberapa order yang dipilih kasir.
+export interface PaymentView {
+  id: string;
+  code: string;
+  sessionId: string;
+  tableCode: string;
+  orderCodes: string[];
+  amount: number;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  paidAt: string;
+  cashierName: string | null;
+}
+
+export interface ReceiptItem {
+  id: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  note: string;
+}
+
+export interface ReceiptOrder {
+  code: string;
+  createdAt: string;
+  items: ReceiptItem[];
+}
+
+// Kwitansi melekat ke satu Payment, bukan ke seluruh sesi meja. Satu payment
+// bisa mencakup beberapa order yang dipilih kasir.
+export interface ReceiptView {
+  paymentCode: string;
+  paidAt: string;
+  tableCode: string;
+  cashierName: string | null;
+  method: PaymentMethod;
+  amount: number;
+  amountReceived: number | null;
+  change: number | null;
+  orders: ReceiptOrder[];
 }
 
 export interface Ingredient {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import {
   ArrowRight,
   Flame,
@@ -6,41 +7,57 @@ import {
   ReceiptText,
   LayoutDashboard,
 } from "lucide-react";
-import { restaurant, tables } from "@/lib/mock-data";
+import { restaurant } from "@/lib/mock-data";
+import { prisma } from "@/lib/prisma";
 import { BrandLogo } from "@/components/brand-logo";
 
-const roles = [
-  {
-    href: `/order/table/${encodeURIComponent(tables[0].sessionToken || tables[0].code)}`,
-    title: "Customer QR Order",
-    desc: `Pindai QR, pesan dari meja ${tables[0].code}, lacak, minta tagihan.`,
-    icon: QrCode,
-    accent: "bg-primary text-primary-foreground",
-  },
-  {
-    href: "/staff/kitchen",
-    title: "Kitchen Display",
-    desc: "4 kolom status, timer tiket, filter stasiun.",
-    icon: Flame,
-    accent: "bg-status-waiting text-white",
-  },
-  {
-    href: "/staff/cashier",
-    title: "Kasir & Billing",
-    desc: "Pilih meja, lihat tagihan, proses pembayaran.",
-    icon: ReceiptText,
-    accent: "bg-status-available text-white",
-  },
-  {
-    href: "/admin",
-    title: "Admin & Analytics",
-    desc: "Dashboard, menu, inventaris, staff, laporan.",
-    icon: LayoutDashboard,
-    accent: "bg-foreground text-background",
-  },
-];
+// Halaman ini membaca meja dari database untuk tautan demo customer.
+export const instant = false;
 
-export default function Home() {
+export default async function Home() {
+  await connection();
+
+  // Tautan demo customer memakai meja nyata di database agar pesanan dari
+  // halaman ini bisa masuk ke sesi, dapur, dan kasir.
+  const table = await prisma.diningTable.findFirst({
+    orderBy: { code: "asc" },
+    select: { code: true, sessionToken: true },
+  });
+
+  const tableCode = table?.code ?? "A01";
+  const tableToken = table?.sessionToken ?? tableCode;
+
+  const roles = [
+    {
+      href: `/order/table/${encodeURIComponent(tableToken)}`,
+      title: "Customer QR Order",
+      desc: `Pindai QR, pesan dari meja ${tableCode}, dan lacak pesanan.`,
+      icon: QrCode,
+      accent: "bg-primary text-primary-foreground",
+    },
+    {
+      href: "/staff/kitchen",
+      title: "Kitchen Display",
+      desc: "4 kolom status, timer tiket, filter stasiun.",
+      icon: Flame,
+      accent: "bg-status-waiting text-white",
+    },
+    {
+      href: "/staff/cashier",
+      title: "Kasir & Billing",
+      desc: "Pilih meja, lihat tagihan, proses pembayaran.",
+      icon: ReceiptText,
+      accent: "bg-status-available text-white",
+    },
+    {
+      href: "/admin",
+      title: "Admin & Analytics",
+      desc: "Dashboard, menu, inventaris, staff, laporan.",
+      icon: LayoutDashboard,
+      accent: "bg-foreground text-background",
+    },
+  ];
+
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center gap-8 px-5 py-12">
       <header className="animate-rise space-y-2 text-center">
@@ -49,8 +66,8 @@ export default function Home() {
           {restaurant.name}
         </h1>
         <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
-          Prototype sistem QR ordering &amp; POS — pilih peran untuk mulai.
-          Semua data demo, tanpa backend.
+          Sistem QR ordering &amp; POS — pilih peran untuk mulai. Data meja,
+          menu, dan order tersimpan di database.
         </p>
       </header>
 
@@ -87,7 +104,7 @@ export default function Home() {
       </ul>
 
       <p className="text-center text-xs text-muted-foreground">
-        Mode prototype · data mock konsisten lintas halaman
+Mode demo · database aktif
       </p>
     </div>
   );

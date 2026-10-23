@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Banknote,
   CheckCircle2,
-  CreditCard,
+  Printer,
   QrCode,
   ReceiptText,
   Search,
-  Smartphone,
   Users,
   Wallet,
   X,
@@ -16,7 +17,8 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import { BrandLogo } from "@/components/brand-logo";
 import { SignOutButton } from "@/components/sign-out-button";
-import { Button } from "@/components/ui/button";
+import { TimeLabel } from "@/components/time-label";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -24,44 +26,62 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { restaurant, rupiah, staff } from "@/lib/mock-data";
+import { restaurant } from "@/lib/mock-data";
+import { rupiah } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import type { PaymentMethod } from "@/lib/types";
+import { payOrdersAction } from "@/lib/action";
+import type {
+  DiningTable,
+  Order,
+  PaymentMethod,
+  TableSession,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const methods: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
   { key: "QRIS", label: "QRIS", icon: QrCode },
   { key: "CASH", label: "Tunai", icon: Banknote },
-  { key: "DEBIT", label: "Debit", icon: CreditCard },
-  { key: "CREDIT", label: "Kredit", icon: CreditCard },
-  { key: "EWALLET", label: "E-Wallet", icon: Smartphone },
 ];
 
 const filterTabs = [
   { key: "ALL", label: "Semua Meja" },
   { key: "OCCUPIED", label: "Terisi" },
-  { key: "WAITING_PAYMENT", label: "Minta Bill" },
   { key: "AVAILABLE", label: "Kosong" },
 ] as const;
 
-export function CashierScreen() {
-  const {
-    tables,
-    sessions,
-    orders,
-    payTable,
-    setBillStatus,
-    openTable,
-    toast,
-  } = useStore();
+export function CashierScreen({
+  tables,
+  sessions,
+  orders,
+  cashierName,
+}: {
+  tables: DiningTable[];
+  sessions: TableSession[];
+  orders: Order[];
+  cashierName: string | null;
+}) {
+  const router = useRouter();
+  const { toast } = useStore();
   const [filter, setFilter] = useState<(typeof filterTabs)[number]["key"]>("ALL");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [payOpen, setPayOpen] = useState(false);
   const [method, setMethod] = useState<PaymentMethod>("QRIS");
   const [received, setReceived] = useState("");
-  const [paid, setPaid] = useState(false);
+  const [lastPayment, setLastPayment] = useState<{
+    paymentId: string;
+    code: string;
+    tableCode: string;
+    total: number;
+    method: PaymentMethod;
+    amountReceived: number | null;
+    change: number | null;
+    orderCodes: string[];
+    sessionClosed: boolean;
+  } | null>(null);
   const [now, setNow] = useState(0);
+  const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     const first = setTimeout(() => setNow(Date.now()), 0);
@@ -71,8 +91,6 @@ export function CashierScreen() {
       clearInterval(t);
     };
   }, []);
-
-  const cashier = staff.find((s) => s.role === "KASIR" && s.active);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -84,36 +102,108 @@ export function CashierScreen() {
   }, [tables, filter, query]);
 
   const selected = tables.find((t) => t.id === selectedId) ?? null;
-  const session =
-    selected && sessions.find((s) => s.tableId === selected.id);
+  const session = selected
+    ? sessions.find((s) => s.tableId === selected.id)
+    : undefined;
   const tableOrders = selected
     ? orders.filter(
-        (o) =>
-          o.tableCode === selected.code && o.status !== "CANCELLED"
-      )
+      (o) => o.sessionId === session?.id && o.status !== "CANCELLED"
+    )
     : [];
 
-  const subtotal = tableOrders.reduce(
-    (s, o) =>
-      s +
-      o.items.reduce(
-        (x, i) => x + (i.unitPrice + i.modifierDelta) * i.quantity,
-        0
-      ),
+  const orderTotal = (order: Order) =>
+    order.total ??
+    order.items.reduce(
+      (sum, item) => sum + (item.unitPrice + item.modifierDelta) * item.quantity,
+      0
+    );
+
+  const unpaidTotal = tableOrders.reduce(
+    (sum, order) => sum + orderTotal(order),
     0
   );
-  const service = Math.round(subtotal * 0.05);
-  const tax = Math.round(subtotal * 0.1);
-  const total = subtotal + service + tax;
+  const selectedOrders = tableOrders.filter((order) =>
+    selectedOrderIds.includes(order.id)
+  );
+  const selectedTotal = selectedOrders.reduce(
+    (sum, order) => sum + orderTotal(order),
+    0
+  );
+  const allOrdersSelected =
+    tableOrders.length > 0 && selectedOrders.length === tableOrders.length;
   const receivedNum = Number(received.replace(/\D/g, "")) || 0;
-  const change = Math.max(0, receivedNum - total);
+  const change = Math.max(0, receivedNum - selectedTotal);
+
+  const toggleOrder = (orderId: string) => {
+    setSelectedOrderIds((prev) =>
+      prev.includes(orderId)
+        ? prev.filter((id) => id !== orderId)
+        : [...prev, orderId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedOrderIds(allOrdersSelected ? [] : tableOrders.map((o) => o.id));
+  };
 
   const handlePay = () => {
-    if (!selected) return;
-    payTable(selected.id, method);
-    setPaid(true);
-    setPayOpen(false);
+    if (!selected || selectedOrders.length === 0) return;
+
+    startTransition(async () => {
+      const result = await payOrdersAction({
+        tableId: selected.id,
+        orderIds: selectedOrders.map((order) => order.id),
+        method,
+        amountReceived: method === "CASH" ? receivedNum : null,
+      });
+
+      if (
+        result.error ||
+        !result.paymentId ||
+        !result.code ||
+        result.total === undefined
+      ) {
+        toast({
+          title: "Pembayaran gagal",
+          description: result.error ?? "Gagal memproses pembayaran.",
+          tone: "error",
+        });
+        return;
+      }
+
+      setLastPayment({
+        paymentId: result.paymentId,
+        code: result.code,
+        tableCode: selected.code,
+        total: result.total,
+        method,
+        amountReceived: result.amountReceived ?? null,
+        change: result.change ?? null,
+        orderCodes: result.orderCodes ?? [],
+        sessionClosed: result.sessionClosed ?? false,
+      });
+      setPayOpen(false);
+      setSelectedOrderIds([]);
+      setReceived("");
+      toast({
+        title: "Pembayaran berhasil",
+        description: result.sessionClosed
+          ? "Semua order lunas. Sesi meja ditutup dan meja kembali tersedia."
+          : "Pembayaran sebagian tersimpan. Order lain tetap bisa dibayar terpisah.",
+        tone: "success",
+      });
+      router.refresh();
+    });
   };
+
+  const closePayment = () => {
+    const sessionClosed = lastPayment?.sessionClosed;
+    setLastPayment(null);
+    if (sessionClosed) setSelectedId(null);
+  };
+
+  const formatRupiah = (digits: string) =>
+    digits ? Number(digits).toLocaleString("id-ID") : "";
 
   return (
     <div className="min-h-dvh bg-background">
@@ -126,7 +216,7 @@ export function CashierScreen() {
               Kasir &amp; Billing
             </h1>
             <p className="text-xs text-muted-foreground">
-              {cashier ? `${cashier.name} · Shift ${cashier.shift}` : restaurant.name}
+              {cashierName ? `${cashierName} · Kasir` : restaurant.name}
             </p>
           </div>
 
@@ -145,13 +235,25 @@ export function CashierScreen() {
             />
           </div>
 
+          <Link
+            href="/staff/cashier/payments"
+            aria-label="Riwayat pembayaran"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "h-9 gap-1.5 rounded-full px-3 text-xs font-bold"
+            )}
+          >
+            <ReceiptText className="size-4" aria-hidden />
+            <span className="hidden sm:inline">Riwayat Pembayaran</span>
+          </Link>
+
           <SignOutButton />
         </div>
 
         <div
           role="tablist"
           aria-label="Filter status meja"
-          className="flex gap-2 overflow-x-auto border-t border-border px-4 py-2 lg:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex gap-2 overflow-x-auto border-t border-border px-4 py-2 lg:px-6 scrollbar-none [&::-webkit-scrollbar]:hidden"
         >
           {filterTabs.map((f) => {
             const on = f.key === filter;
@@ -167,7 +269,7 @@ export function CashierScreen() {
                 onClick={() => setFilter(f.key)}
                 className={cn(
                   "flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-bold whitespace-nowrap transition",
-                  "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                  "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none cursor-pointer",
                   on
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-card hover:bg-accent/50"
@@ -199,24 +301,27 @@ export function CashierScreen() {
                 const sess = sessions.find((s) => s.tableId === t.id);
                 const mins = sess
                   ? Math.max(
-                      0,
-                      Math.floor(
-                        (now - new Date(sess.startedAt).getTime()) / 60000
-                      )
+                    0,
+                    Math.floor(
+                      (now - new Date(sess.startedAt).getTime()) / 60000
                     )
+                  )
                   : 0;
                 return (
                   <button
                     key={t.id}
                     onClick={() => {
                       setSelectedId(on ? null : t.id);
-                      setPaid(false);
+                      setSelectedOrderIds([]);
+                      setReceived("");
+                      setPayOpen(false);
+                      setLastPayment(null);
                     }}
                     aria-pressed={on}
                     className={cn(
                       "animate-rise rounded-xl border bg-card p-3 text-left transition",
                       "shadow-[0_2px_4px_-1px_rgba(15,23,42,0.06),0_1px_2px_-1px_rgba(15,23,42,0.04)]",
-                      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none cursor-pointer",
                       on
                         ? "border-primary ring-2 ring-primary/30"
                         : "border-border hover:-translate-y-0.5 hover:border-primary/40"
@@ -268,7 +373,7 @@ export function CashierScreen() {
                     Tagihan Meja {selected.code}
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    {tableOrders.length} order aktif
+                    {tableOrders.length} order belum dibayar
                   </p>
                 </div>
                 <StatusBadge status={selected.status} />
@@ -279,105 +384,115 @@ export function CashierScreen() {
                   Belum ada order di meja ini.
                 </p>
               ) : (
-                <ul className="mt-4 space-y-3">
-                  {tableOrders.map((o) => (
-                    <li
-                      key={o.id}
-                      className="rounded-lg border border-border bg-background p-3"
+                <>
+                  <div className="mt-4 flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+                      Pilih order pelanggan
+                    </p>
+                    <button
+                      type="button"
+                      onClick={toggleSelectAll}
+                      className="text-xs font-bold text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="tnum text-xs font-bold text-muted-foreground">
-                          {o.code}
-                        </span>
-                        <StatusBadge status={o.status} compact />
-                      </div>
-                      <ul className="mt-2 space-y-1">
-                        {o.items.map((it) => (
-                          <li
-                            key={it.id}
-                            className="flex items-baseline justify-between gap-2 text-sm"
+                      {allOrdersSelected ? "Batal pilih semua" : "Pilih semua"}
+                    </button>
+                  </div>
+                  <ul className="mt-2 space-y-3">
+                    {tableOrders.map((o) => {
+                      const checked = selectedOrderIds.includes(o.id);
+                      return (
+                        <li key={o.id}>
+                          <label
+                            className={cn(
+                              "flex cursor-pointer gap-3 rounded-lg border bg-background p-3 transition",
+                              checked
+                                ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                                : "border-border hover:border-primary/40"
+                            )}
                           >
-                            <span className="min-w-0 truncate">
-                              <span className="tnum font-bold">
-                                {it.quantity}×
-                              </span>{" "}
-                              {it.productName}
-                            </span>
-                            <span className="tnum shrink-0 font-semibold">
-                              {rupiah(
-                                (it.unitPrice + it.modifierDelta) * it.quantity
-                              )}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </li>
-                  ))}
-                </ul>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleOrder(o.id)}
+                              aria-label={`Pilih order ${o.code}`}
+                              className="mt-1 size-4 shrink-0 accent-primary"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="tnum text-xs font-bold text-muted-foreground">
+                                  {o.code}
+                                </span>
+                                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <TimeLabel iso={o.createdAt} />
+                                  <StatusBadge status={o.status} compact />
+                                </span>
+                              </div>
+                              <ul className="mt-2 space-y-1">
+                                {o.items.map((it) => (
+                                  <li
+                                    key={it.id}
+                                    className="flex items-baseline justify-between gap-2 text-sm"
+                                  >
+                                    <span className="min-w-0 truncate">
+                                      <span className="tnum font-bold">
+                                        {it.quantity}×
+                                      </span>{" "}
+                                      {it.productName}
+                                    </span>
+                                    <span className="tnum shrink-0 font-semibold">
+                                      {rupiah(
+                                        (it.unitPrice + it.modifierDelta) *
+                                        it.quantity
+                                      )}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                              <div className="mt-2 flex justify-between border-t border-border pt-2 text-xs">
+                                <span className="text-muted-foreground">
+                                  Total order
+                                </span>
+                                <span className="tnum font-bold">
+                                  {rupiah(orderTotal(o))}
+                                </span>
+                              </div>
+                            </div>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
               )}
 
-              <dl className="mt-4 space-y-2 border-t border-border pt-3 text-sm">
+              <dl className="mt-4 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Subtotal</dt>
-                  <dd className="tnum font-semibold">{rupiah(subtotal)}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Service (5%)</dt>
-                  <dd className="tnum font-semibold">{rupiah(service)}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Pajak (10%)</dt>
-                  <dd className="tnum font-semibold">{rupiah(tax)}</dd>
+                  <dt className="text-muted-foreground">Total belum dibayar</dt>
+                  <dd className="tnum font-semibold">{rupiah(unpaidTotal)}</dd>
                 </div>
                 <div className="flex justify-between border-t border-border pt-2 text-base">
-                  <dt className="font-bold">Total</dt>
+                  <dt className="font-bold">
+                    {selectedOrders.length} order dipilih
+                  </dt>
                   <dd className="tnum font-extrabold text-primary">
-                    {rupiah(total)}
+                    {rupiah(selectedTotal)}
                   </dd>
                 </div>
               </dl>
 
-              {session?.billStatus === "REQUESTED" && (
-                <p className="mt-3 flex items-center gap-2 rounded-lg bg-status-waiting-bg px-3 py-2 text-xs font-bold text-status-waiting-fg">
-                  <ReceiptText className="size-4 shrink-0" aria-hidden />
-                  Tamu meminta tagihan
-                </p>
-              )}
-
               <div className="mt-4 flex flex-col gap-2">
                 <Button
-                  onClick={() => setPayOpen(true)}
-                  disabled={total === 0 || paid}
-                  className="h-11 w-full rounded-full text-sm font-bold"
+                  onClick={() => {
+                    setReceived("");
+                    setPayOpen(true);
+                  }}
+                  disabled={selectedOrders.length === 0 || pending}
+                  className="h-11 w-full rounded-full text-sm font-bold cursor-pointer"
                 >
-                  {paid ? "Sudah Dibayar ✓" : `Proses Pembayaran · ${rupiah(total)}`}
+                  {selectedOrders.length === 0
+                    ? "Pilih order dulu"
+                    : `Bayar ${selectedOrders.length} order · ${rupiah(selectedTotal)}`}
                 </Button>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="h-9 flex-1 rounded-full text-xs font-bold"
-                    disabled={session?.billStatus === "REQUESTED"}
-                    onClick={() => {
-                      setBillStatus(selected.id, "REQUESTED");
-                      toast({
-                        title: "Status: Menunggu Bayar",
-                        description: `Meja ${selected.code} ditandai menunggu pembayaran.`,
-                        tone: "warning",
-                      });
-                    }}
-                  >
-                    Tandai Minta Bill
-                  </Button>
-                  {selected.status === "AVAILABLE" && (
-                    <Button
-                      variant="outline"
-                      className="h-9 flex-1 rounded-full text-xs font-bold"
-                      onClick={() => openTable(selected.id)}
-                    >
-                      Buka Sesi
-                    </Button>
-                  )}
-                </div>
               </div>
             </div>
           )}
@@ -389,7 +504,7 @@ export function CashierScreen() {
         open={payOpen}
         onOpenChange={(o) => {
           setPayOpen(o);
-          if (!o) setPaid(false);
+          if (!o) setReceived("");
         }}
       >
         <DialogContent className="gap-5 sm:max-w-md">
@@ -398,16 +513,17 @@ export function CashierScreen() {
               Pembayaran Meja {selected?.code}
             </DialogTitle>
             <DialogDescription>
-              Pilih metode pembayaran untuk menutup sesi meja ini.
+              {selectedOrders.length} order dipilih. Order lain di meja ini tidak
+              ikut dibayar.
             </DialogDescription>
           </div>
 
           <div className="rounded-lg bg-secondary px-4 py-3">
             <p className="text-xs font-semibold text-muted-foreground">
-              Total Tagihan
+              Total Order Dipilih
             </p>
             <p className="tnum font-heading text-2xl font-extrabold text-primary">
-              {rupiah(total)}
+              {rupiah(selectedTotal)}
             </p>
           </div>
 
@@ -415,7 +531,7 @@ export function CashierScreen() {
             <legend className="mb-2 text-sm font-bold">
               Metode Pembayaran
             </legend>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {methods.map((m) => {
                 const Icon = m.icon;
                 const on = m.key === method;
@@ -427,7 +543,7 @@ export function CashierScreen() {
                     aria-pressed={on}
                     className={cn(
                       "flex flex-col items-center gap-1.5 rounded-lg border px-2 py-3 text-xs font-bold transition",
-                      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none cursor-pointer",
                       on
                         ? "border-primary bg-primary text-primary-foreground shadow-sm"
                         : "border-border bg-card hover:border-primary/50 hover:bg-accent/40"
@@ -452,7 +568,7 @@ export function CashierScreen() {
               <input
                 id="received"
                 inputMode="numeric"
-                value={received}
+                value={formatRupiah(received)}
                 onChange={(e) =>
                   setReceived(e.target.value.replace(/\D/g, ""))
                 }
@@ -467,50 +583,82 @@ export function CashierScreen() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPayOpen(false)}>
+            <Button variant="outline" onClick={() => setPayOpen(false)} className={"cursor-pointer"}>
               Batal
             </Button>
             <Button
               onClick={handlePay}
-              disabled={method === "CASH" && receivedNum < total}
-              className="font-bold"
+              disabled={
+                pending ||
+                selectedOrders.length === 0 ||
+                (method === "CASH" && receivedNum < selectedTotal)
+              }
+              className="font-bold cursor-pointer"
             >
               <Wallet className="size-4" aria-hidden />
-              Selesaikan Pembayaran
+              {pending
+                ? "Memproses…"
+                : `Bayar ${selectedOrders.length} Order`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Payment success */}
-      <Dialog open={paid} onOpenChange={setPaid}>
+      <Dialog
+        open={lastPayment !== null}
+        onOpenChange={(o) => {
+          if (!o) closePayment();
+        }}
+      >
         <DialogContent className="sm:max-w-sm">
-          <div className="flex flex-col items-center gap-3 py-2 text-center">
-            <span className="flex size-16 items-center justify-center rounded-full bg-status-available-bg">
-              <CheckCircle2 className="size-8 text-status-available-fg" aria-hidden />
-            </span>
-            <DialogTitle className="font-heading text-lg font-extrabold">
-              Pembayaran Berhasil
-            </DialogTitle>
-            <DialogDescription>
-              Meja {selected?.code} telah ditutup dan kembali tersedia.
-              Struk tercetak otomatis.
-            </DialogDescription>
-            <p className="tnum text-sm font-semibold">
-              {rupiah(total)} · {methods.find((m) => m.key === method)?.label}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button
-              className="w-full font-bold"
-              onClick={() => {
-                setPaid(false);
-                setSelectedId(null);
-              }}
-            >
-              <X className="size-4" aria-hidden /> Selesai
-            </Button>
-          </DialogFooter>
+          {lastPayment && (
+            <>
+              <div className="flex flex-col items-center gap-3 py-2 text-center">
+                <span className="flex size-16 items-center justify-center rounded-full bg-status-available-bg">
+                  <CheckCircle2
+                    className="size-8 text-status-available-fg"
+                    aria-hidden
+                  />
+                </span>
+                <DialogTitle className="font-heading text-lg font-extrabold">
+                  Pembayaran Berhasil
+                </DialogTitle>
+                <DialogDescription>
+                  {lastPayment.sessionClosed
+                    ? `Meja ${lastPayment.tableCode} telah ditutup dan kembali tersedia.`
+                    : `Pembayaran ${lastPayment.orderCodes.length} order tersimpan. Meja ${lastPayment.tableCode} masih memiliki order lain.`}
+                </DialogDescription>
+                <p className="tnum text-sm font-semibold">
+                  {rupiah(lastPayment.total)} ·{" "}
+                  {methods.find((m) => m.key === lastPayment.method)?.label}
+                </p>
+                <p className="tnum text-xs text-muted-foreground">
+                  {lastPayment.code}
+                </p>
+              </div>
+              <DialogFooter className="gap-2 sm:flex-col-reverse sm:justify-normal">
+                <Link
+                  href={`/staff/cashier/receipt/${encodeURIComponent(lastPayment.code)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cn(
+                    buttonVariants({ variant: "outline" }),
+                    "h-10 w-full gap-2 rounded-full font-bold"
+                  )}
+                >
+                  <Printer className="size-4" aria-hidden />
+                  Unduh / Cetak Kwitansi
+                </Link>
+                <Button
+                  className="w-full font-bold cursor-pointer"
+                  onClick={closePayment}
+                >
+                  <X className="size-4" aria-hidden /> Selesai
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

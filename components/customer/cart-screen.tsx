@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import {
   ArrowLeft,
   Minus,
   Plus,
   ShoppingBasket,
   Trash2,
-  BellRing,
-  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,13 +18,10 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { rupiah, restaurant } from "@/lib/mock-data";
+import { rupiah } from "@/lib/format";
 import { BrandLogo } from "@/components/brand-logo";
 import { useStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
-
-const SERVICE_PCT = 0.05;
-const TAX_PCT = 0.10;
+import { createOrderAction } from "@/lib/action";
 
 export function CartScreen({
   tableCode,
@@ -34,87 +30,47 @@ export function CartScreen({
   tableCode: string;
   tableToken: string;
 }) {
-  const {
-    cart,
-    updateQty,
-    removeItem,
-    placeOrder,
-    setBillStatus,
-    billRequestedFor,
-    tables,
-    toast,
-  } = useStore();
+  const router = useRouter();
+  const { cart, updateQty, removeItem, clearCart, toast } = useStore();
   const [confirm, setConfirm] = useState(false);
-  const [billDialog, setBillDialog] = useState(false);
-  const [successId, setSuccessId] = useState<string | null>(null);
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const [orderPending, startOrder] = useTransition();
 
   const subtotal = cart.reduce(
     (s, i) => s + (i.unitPrice + i.modifierDelta) * i.quantity,
     0
   );
-  const service = Math.round(subtotal * SERVICE_PCT);
-  const tax = Math.round(subtotal * TAX_PCT);
-  const total = subtotal + service + tax;
-
-  const table = tables.find((t) => t.code === tableCode);
-  const billStatus = billRequestedFor === table?.id ? "REQUESTED" : null;
+  const total = subtotal;
 
   const handlePlaceOrder = () => {
-    const id = placeOrder(tableToken, tableCode);
-    setConfirm(false);
-    setSuccessId(id);
-    toast({
-      title: "Pesanan terkirim ke dapur",
-      description: "Kamu bisa memantau statusnya secara real-time.",
-      tone: "success",
+    setOrderError(null);
+    startOrder(async () => {
+      const result = await createOrderAction({
+        tableToken,
+        items: cart.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          note: item.note,
+        })),
+      });
+
+      if (result.error || !result.code) {
+        setOrderError(result.error ?? "Gagal membuat pesanan. Coba lagi.");
+        return;
+      }
+
+      clearCart();
+      setConfirm(false);
+      toast({
+        title: "Pesanan terkirim ke dapur",
+        description: "Kamu bisa memantau statusnya secara real-time.",
+        tone: "success",
+      });
+      router.push(
+        `/order/success?id=${encodeURIComponent(result.code)}&token=${encodeURIComponent(tableToken)}`
+      );
     });
   };
-
-  if (successId) {
-    return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col items-center justify-center gap-5 px-6 text-center">
-        <div className="animate-rise flex size-20 items-center justify-center rounded-full bg-status-available-bg">
-          <CheckCircle2 className="size-10 text-status-available-fg" aria-hidden />
-        </div>
-        <div className="animate-rise stagger-1 space-y-2">
-          <h1 className="font-heading text-2xl font-extrabold">
-            Pesanan terkirim!
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Dapur sudah menerima pesananmu. Estimasi 15–20 menit.
-          </p>
-        </div>
-        <div className="animate-rise stagger-2 w-full rounded-xl border border-border bg-card p-4 text-left">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Meja</span>
-            <span className="font-bold">{tableCode}</span>
-          </div>
-          <div className="mt-1 flex justify-between text-sm">
-            <span className="text-muted-foreground">Nomor pesanan</span>
-            <span className="tnum font-bold">{successId.toUpperCase()}</span>
-          </div>
-        </div>
-        <div className="animate-rise stagger-3 flex w-full flex-col gap-2">
-          <Link
-            href={`/order/${encodeURIComponent(successId)}?token=${encodeURIComponent(tableToken)}`}
-            className="w-full"
-          >
-            <Button className="h-12 w-full rounded-full text-sm font-bold">
-              Lacak Pesanan
-            </Button>
-          </Link>
-          <Link
-            href={`/order/table/${encodeURIComponent(tableToken)}`}
-            className="w-full"
-          >
-            <Button variant="outline" className="h-12 w-full rounded-full text-sm font-bold">
-              Pesan Lagi
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto min-h-dvh w-full max-w-lg pb-40">
@@ -131,10 +87,10 @@ export function CartScreen({
             <h1 className="font-heading text-lg leading-tight font-extrabold">
               Keranjang
             </h1>
-          <p className="tnum text-xs text-muted-foreground">Meja {tableCode}</p>
+            <p className="tnum text-xs text-muted-foreground">Meja {tableCode}</p>
+          </div>
+          <BrandLogo className="ml-auto h-5 shrink-0" />
         </div>
-        <BrandLogo className="ml-auto h-5 shrink-0" />
-      </div>
       </header>
 
       <main className="px-4 pt-5">
@@ -186,7 +142,7 @@ export function CartScreen({
                       <button
                         onClick={() => updateQty(it.id, it.quantity - 1)}
                         aria-label={`Kurangi ${it.productName}`}
-                        className="flex size-8 items-center justify-center rounded-full hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        className="flex size-8 items-center justify-center rounded-full hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none cursor-pointer"
                       >
                         <Minus className="size-3.5" aria-hidden />
                       </button>
@@ -196,7 +152,7 @@ export function CartScreen({
                       <button
                         onClick={() => updateQty(it.id, it.quantity + 1)}
                         aria-label={`Tambah ${it.productName}`}
-                        className="flex size-8 items-center justify-center rounded-full hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        className="flex size-8 items-center justify-center rounded-full hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none cursor-pointer"
                       >
                         <Plus className="size-3.5" aria-hidden />
                       </button>
@@ -204,7 +160,7 @@ export function CartScreen({
                     <button
                       onClick={() => removeItem(it.id)}
                       aria-label={`Hapus ${it.productName}`}
-                      className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-status-error-bg hover:text-status-error-fg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                      className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-status-error-bg hover:text-status-error-fg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none  cursor-pointer"
                     >
                       <Trash2 className="size-4" aria-hidden />
                     </button>
@@ -219,19 +175,7 @@ export function CartScreen({
               className="mt-5 rounded-xl border border-border bg-card p-4"
             >
               <dl className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Subtotal</dt>
-                  <dd className="tnum font-semibold">{rupiah(subtotal)}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Service (5%)</dt>
-                  <dd className="tnum font-semibold">{rupiah(service)}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Pajak (10%)</dt>
-                  <dd className="tnum font-semibold">{rupiah(tax)}</dd>
-                </div>
-                <div className="flex justify-between border-t border-border pt-2 text-base">
+                <div className="flex justify-between text-base">
                   <dt className="font-bold">Total</dt>
                   <dd className="tnum font-extrabold text-primary">
                     {rupiah(total)}
@@ -254,10 +198,14 @@ export function CartScreen({
               </p>
             </div>
             <Button
-              onClick={() => setConfirm(true)}
-              className="h-12 rounded-full px-6 text-sm font-bold"
+              onClick={() => {
+                setOrderError(null);
+                setConfirm(true);
+              }}
+              disabled={orderPending}
+              className="h-12 rounded-full px-6 text-sm font-bold cursor-pointer"
             >
-              Pesan Sekarang
+              {orderPending ? "Mengirim…" : "Pesan Sekarang"}
             </Button>
           </div>
         </div>
@@ -273,70 +221,26 @@ export function CartScreen({
             {cart.length} item untuk meja {tableCode}. Setelah dikirim, statusnya
             bisa dilacak di halaman tracking.
           </DialogDescription>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirm(false)}>
-              Batal
-            </Button>
-            <Button onClick={handlePlaceOrder} className="font-bold">
-              Ya, Pesan
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Request Bill */}
-      <div className="mt-6 px-4">
-        <button
-          onClick={() => setBillDialog(true)}
-          className={cn(
-            "flex h-11 w-full items-center justify-center gap-2 rounded-full border text-sm font-bold transition",
-            "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-            billStatus
-              ? "border-status-waiting/40 bg-status-waiting-bg text-status-waiting-fg"
-              : "border-border bg-card hover:border-primary/50 hover:bg-accent/50"
+          {orderError && (
+            <p
+              role="alert"
+              className="rounded-lg bg-status-error-bg px-3 py-2 text-xs font-medium text-status-error-fg"
+            >
+              {orderError}
+            </p>
           )}
-        >
-          <BellRing className="size-4" aria-hidden />
-          {billStatus ? "Tagihan Diminta" : "Minta Tagihan"}
-        </button>
-      </div>
-
-      <Dialog open={billDialog} onOpenChange={setBillDialog}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogTitle className="font-heading text-lg font-extrabold">
-            {billStatus
-              ? "Tagihan sudah diminta"
-              : "Minta tagihan sekarang?"}
-          </DialogTitle>
-          <DialogDescription>
-            {billStatus
-              ? "Kasir sedang menyiapkan tagihanmu. Mohon tunggu sebentar."
-              : "Kasir akan menyiapkan tagihan untuk meja ini."}
-          </DialogDescription>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBillDialog(false)}>
+            <Button variant="outline" onClick={() => setConfirm(false)} className="cursor-pointer">
               Batal
             </Button>
-            {!billStatus && (
-              <Button
-                className="font-bold"
-                onClick={() => {
-                  if (table) setBillStatus(table.id, "REQUESTED");
-                  setBillDialog(false);
-                  toast({
-                    title: "Permintaan tagihan terkirim",
-                    description: "Tunggu konfirmasi kasir.",
-                    tone: "success",
-                  });
-                }}
-              >
-                Minta Tagihan
-              </Button>
-            )}
+            <Button
+              onClick={handlePlaceOrder}
+              disabled={orderPending}
+              className="font-bold cursor-pointer"
+            >
+              {orderPending ? "Mengirim…" : "Ya, Pesan"}
+            </Button>
           </DialogFooter>
-          <p className="tnum text-center text-xs text-muted-foreground">
-            {restaurant.name} · Meja {tableCode}
-          </p>
         </DialogContent>
       </Dialog>
     </div>

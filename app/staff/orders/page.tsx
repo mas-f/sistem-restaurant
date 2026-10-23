@@ -1,5 +1,9 @@
 import { OrdersScreen } from "@/components/admin/orders-screen";
+import { getOrdersForScreen } from "@/lib/orders";
 
-export default function StaffOrdersPage() {
-  return <OrdersScreen />;
+export const instant = false;
+
+export default async function StaffOrdersPage() {
+  const orders = await getOrdersForScreen();
+  return <OrdersScreen orders={orders} />;
 }

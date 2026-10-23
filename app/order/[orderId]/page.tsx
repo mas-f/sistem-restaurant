@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { OrderTrackingScreen } from "@/components/customer/order-tracking-screen";
-import { fallbackMockTable, resolveTableByToken } from "@/lib/resolve-table";
+import { toUiOrder } from "@/lib/orders";
+import { prisma } from "@/lib/prisma";
 
 async function TrackingContent({
   params,
@@ -11,14 +12,24 @@ async function TrackingContent({
 }) {
   const { orderId } = await params;
   const sp = await searchParams;
-  // Token dibawa dari keranjang (…?token=) agar "Kembali ke Menu" membuka
-  // meja yang benar; tanpa token, tautan lama jatuh ke fallback demo.
-  const table = (await resolveTableByToken(sp.token)) ?? fallbackMockTable();
+  const decoded = decodeURIComponent(orderId);
+
+  const order = await prisma.order.findFirst({
+    where: { OR: [{ code: decoded }, { id: decoded }] },
+    include: {
+      items: { orderBy: { id: "asc" } },
+      session: { include: { table: true } },
+    },
+  });
+
+  // Token meja diambil dari sesi order (otoritatif); query token hanya
+  // fallback untuk tautan lama.
+  const tableToken = order?.session.table.sessionToken ?? sp.token ?? "";
 
   return (
     <OrderTrackingScreen
-      orderId={decodeURIComponent(orderId)}
-      tableToken={table.sessionToken || table.code}
+      order={order ? toUiOrder(order) : null}
+      tableToken={tableToken}
     />
   );
 }

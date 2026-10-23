@@ -5,9 +5,8 @@ import { ClipboardList, Search } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { SignOutButton } from "@/components/sign-out-button";
 import { TimeLabel } from "@/components/time-label";
-import { rupiah } from "@/lib/mock-data";
-import { useStore } from "@/lib/store";
-import type { OrderStatus } from "@/lib/types";
+import { rupiah } from "@/lib/format";
+import type { Order, OrderStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const filters: { key: "ALL" | OrderStatus; label: string }[] = [
@@ -19,8 +18,7 @@ const filters: { key: "ALL" | OrderStatus; label: string }[] = [
   { key: "COMPLETED", label: "Selesai" },
 ];
 
-export function OrdersScreen() {
-  const { orders } = useStore();
+export function OrdersScreen({ orders }: { orders: Order[] }) {
   const [f, setF] = useState<(typeof filters)[number]["key"]>("ALL");
   const [q, setQ] = useState("");
 
@@ -105,10 +103,12 @@ export function OrdersScreen() {
               </thead>
               <tbody className="divide-y divide-border">
                 {list.map((o) => {
-                  const total = o.items.reduce(
-                    (s, i) => s + (i.unitPrice + i.modifierDelta) * i.quantity,
-                    0
-                  );
+                  const total =
+                    o.total ??
+                    o.items.reduce(
+                      (s, i) => s + (i.unitPrice + i.modifierDelta) * i.quantity,
+                      0
+                    );
                   return (
                     <tr key={o.id} className="hover:bg-secondary/40">
                       <td className="tnum px-4 py-3 font-semibold">

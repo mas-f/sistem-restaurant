@@ -2,40 +2,56 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Search, ShoppingBasket, X } from "lucide-react";
+import {
+  ChevronRight,
+  Search,
+  ShoppingBasket,
+  UtensilsCrossed,
+  X,
+} from "lucide-react";
 import { RestaurantHeader } from "@/components/customer/restaurant-header";
 import { ProductCard } from "@/components/customer/product-card";
 import { ProductDetailDialog } from "@/components/customer/product-detail-dialog";
-import { categories, products, rupiah } from "@/lib/mock-data";
-import type { Modifier, Product } from "@/lib/types";
+import { rupiah } from "@/lib/format";
+import { ALL_CATEGORY_ID } from "@/lib/menu";
 import { useStore } from "@/lib/store";
+import type { MenuCategory, MenuProduct } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function MenuScreen({
   tableCode,
   tableToken,
+  seats,
   guestLabel,
+  categories,
+  products,
 }: {
   tableCode: string;
   tableToken: string;
+  seats: number;
   guestLabel: string;
+  categories: MenuCategory[];
+  products: MenuProduct[];
 }) {
-  const [activeCat, setActiveCat] = useState("cat-1");
+  const [activeCat, setActiveCat] = useState(ALL_CATEGORY_ID);
   const [query, setQuery] = useState("");
-  const [detail, setDetail] = useState<Product | null>(null);
+  const [detail, setDetail] = useState<MenuProduct | null>(null);
   const { cart, addToCart, toast } = useStore();
+
+  // Kategori DB tampil semua (termasuk yang masih kosong) + tab "Semua".
+  const tabs = [{ id: ALL_CATEGORY_ID, name: "Semua" }, ...categories];
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((p) => {
-      const catOk = activeCat === "cat-1" || p.categoryId === activeCat;
+      const catOk = activeCat === ALL_CATEGORY_ID || p.categoryId === activeCat;
       const qOk =
         !q ||
         p.name.toLowerCase().includes(q) ||
         p.description.toLowerCase().includes(q);
       return catOk && qOk;
     });
-  }, [activeCat, query]);
+  }, [activeCat, query, products]);
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
   const cartTotal = cart.reduce(
@@ -43,18 +59,17 @@ export function MenuScreen({
     0
   );
 
-  const handleAdd = (p: Product, mods: Modifier[], qty: number, note: string) => {
+  const handleAdd = (p: MenuProduct, qty: number, note: string) => {
     addToCart({
       id: `${p.id}-${Date.now()}`,
       productId: p.id,
       productName: p.name,
       quantity: qty,
       unitPrice: p.price,
-      modifierNames: mods.map((m) => m.name),
-      modifierDelta: mods.reduce((s, m) => s + m.priceDelta, 0),
+      modifierNames: [],
+      modifierDelta: 0,
       note,
-      station:
-        p.categoryId === "cat-4" ? "Bar" : p.categoryId === "cat-3" ? "Wok" : "Grill",
+      station: p.station,
     });
     toast({
       title: "Ditambahkan ke keranjang",
@@ -63,9 +78,17 @@ export function MenuScreen({
     });
   };
 
+  const resetFilter = () => {
+    setQuery("");
+    setActiveCat(ALL_CATEGORY_ID);
+  };
+
+  const hasProducts = products.length > 0;
+  const isSearching = query.trim().length > 0;
+
   return (
     <div className="relative mx-auto min-h-dvh w-full max-w-3xl pb-32">
-      <RestaurantHeader tableCode={tableCode} />
+      <RestaurantHeader tableCode={tableCode} seats={seats} />
 
       <div className="px-4 pt-4">
         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -103,9 +126,9 @@ export function MenuScreen({
       <div
         role="tablist"
         aria-label="Kategori menu"
-        className="mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="mt-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden"
       >
-        {categories.map((c) => {
+        {tabs.map((c) => {
           const active = c.id === activeCat;
           return (
             <button
@@ -115,7 +138,7 @@ export function MenuScreen({
               onClick={() => setActiveCat(c.id)}
               className={cn(
                 "h-9 shrink-0 rounded-full border px-4 text-sm font-semibold whitespace-nowrap transition",
-                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none cursor-pointer",
                 active
                   ? "border-primary bg-primary text-primary-foreground shadow-sm"
                   : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-accent/50"
@@ -129,20 +152,37 @@ export function MenuScreen({
 
       {/* Product grid */}
       <main className="px-4 pt-5">
-        {filtered.length === 0 ? (
+        {!hasProducts ? (
+          <div className="animate-rise flex flex-col items-center gap-3 py-16 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+              <UtensilsCrossed
+                className="size-6 text-muted-foreground"
+                aria-hidden
+              />
+            </div>
+            <p className="font-heading font-bold">Menu belum tersedia</p>
+            <p className="max-w-xs text-sm text-muted-foreground">
+              Belum ada produk yang bisa dipesan saat ini. Silakan panggil staf
+              kami.
+            </p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="animate-rise flex flex-col items-center gap-3 py-16 text-center">
             <div className="flex size-14 items-center justify-center rounded-full bg-muted">
               <Search className="size-6 text-muted-foreground" aria-hidden />
             </div>
-            <p className="font-heading font-bold">Menu tidak ditemukan</p>
+            <p className="font-heading font-bold">
+              {isSearching
+                ? "Menu tidak ditemukan"
+                : "Belum ada menu di kategori ini"}
+            </p>
             <p className="max-w-xs text-sm text-muted-foreground">
-              Coba kata kunci lain atau pilih kategori “Semua”.
+              {isSearching
+                ? "Coba kata kunci lain atau pilih kategori “Semua”."
+                : "Pilih kategori lain atau lihat semua menu yang tersedia."}
             </p>
             <button
-              onClick={() => {
-                setQuery("");
-                setActiveCat("cat-1");
-              }}
+              onClick={resetFilter}
               className="rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               Reset filter

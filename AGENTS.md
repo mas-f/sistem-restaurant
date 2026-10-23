@@ -24,10 +24,17 @@ screen.
   `app/api/auth/[...nextauth]`, role guard in `proxy.ts`), admin CRUD for categories,
   products, dining tables (async server components + server actions in `lib/action.ts`),
   product images on Supabase Storage (`lib/supabase-storage.ts`), table QR codes on
-  `/admin/tables/qr` (real scannable SVG from `sessionToken`).
-- **Still mock:** customer ordering flow — menu/cart content, orders, tracking, sessions
-  (`lib/mock-data.ts` + `lib/store.tsx`), kitchen display, cashier, and the admin
-  dashboard/orders/payments/sales/staff/shifts/inventory/suppliers/settings screens.
+  `/admin/tables/qr` (real scannable SVG from `sessionToken`), customer ordering
+  (menu from DB, cart → `createOrderAction`, success/tracking pages), `TableSession` /
+  `Order` / `OrderItem` / `Payment` flow, kitchen display (`advanceKitchenAction`),
+  cashier billing & per-order payment (`payOrdersAction`, receipt print at
+  `/staff/cashier/receipt/[paymentCode]`, payment history at
+  `/staff/cashier/payments`), admin/staff orders + admin payments, and the admin
+  dashboard & sales dashboard (KPIs, active orders, table status, daily
+  revenue/payments, and best sellers from `lib/orders.ts`).
+- **Still mock:** cart UI state and toast store (`lib/store.tsx`), restaurant metadata in
+  `lib/mock-data.ts`, the dashboard inventory/stock warnings, and the admin
+  staff/shifts/inventory/suppliers/settings screens. Modifiers are not modeled yet.
 
 **Scope:** the prototype-only constraint (PRD §3 Non-Goals) is lifted for this phase:
 database, Prisma, server actions, auth, and third-party services (Supabase Storage) are in
@@ -46,7 +53,7 @@ npx prisma migrate dev --name <slug>   # schema change (interactive TTY only)
 npx prisma migrate deploy             # apply pending migrations (CI/non-interactive)
 npx prisma generate                   # regenerate lib/generated/prisma
 npx prisma studio                     # inspect the database
-npx tsx prisma/seed.ts                # seed users + dining tables (needs .env, no npm script)
+npx tsx prisma/seed.ts                # users + tables + demo orders if no sessions (needs .env)
 ```
 
 There is no test framework, formatter config, or CI in this repo. Verify with
@@ -70,6 +77,16 @@ There is no test framework, formatter config, or CI in this repo. Verify with
 - **Writes:** server actions live in `lib/action.ts` — validate input (existing `parse*`
   helpers), return `{ error }` for form state, then `revalidatePath` + `redirect`. Keep new
   actions there with the same signature.
+- **Order totals:** `Order.total = Order.subtotal`; service charge and tax are intentionally
+  not modeled (columns removed in
+  `prisma/migrations/20261021130000_remove_order_service_tax`). Do not reintroduce them.
+- **Payment methods:** only `QRIS`/`qris` and `CASH`/`cash` are supported. Legacy
+  debit/credit/e-wallet rows were normalized to `qris` in
+  `prisma/migrations/20261021140000_reduce_payment_methods`. Do not add new method values.
+- **Payments are per selected order:** `Order.paymentId` marks an order as paid; one
+  `Payment` may cover multiple orders. The cashier closes the session/table only when no
+  unpaid orders remain. Receipts are rendered per payment code at
+  `/staff/cashier/receipt/[paymentCode]` and printed through the browser (80mm CSS).
 - **Auth:** `auth()` from `@/auth`; role-based route guard runs in `proxy.ts`
   (`/admin` → admin; `/staff/kitchen`, `/staff/cashier`, `/staff/orders` per role). Roles
   and role landing paths live in `lib/auth-types.ts`.
@@ -113,5 +130,6 @@ There is no test framework, formatter config, or CI in this repo. Verify with
   migration SQL by hand under `prisma/migrations/<ts>_<name>/` and apply with
   `npx prisma migrate deploy`.
 - There is no seed npm script; run `npx tsx prisma/seed.ts` (requires `.env`). It is
-  ensure-only and idempotent — existing tables are never touched, so user data and
-  printed QR tokens stay valid; it only creates missing rows.
+  idempotent: existing dining tables are never modified (printed QR tokens stay valid),
+  and demo sessions/orders/payments are only created when `TableSession` is empty.
+  Missing users/tables are created; existing users are upserted.

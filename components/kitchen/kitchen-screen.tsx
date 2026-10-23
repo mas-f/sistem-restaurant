@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   BellRing,
   CheckCircle2,
@@ -14,8 +15,10 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import { BrandLogo } from "@/components/brand-logo";
 import { SignOutButton } from "@/components/sign-out-button";
-import { rupiah, restaurant } from "@/lib/mock-data";
+import { restaurant } from "@/lib/mock-data";
+import { rupiah } from "@/lib/format";
 import { useStore } from "@/lib/store";
+import { advanceKitchenAction } from "@/lib/action";
 import type { KitchenStatus, Order } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -25,13 +28,11 @@ const columns: {
   icon: typeof Flame;
   accent: string;
 }[] = [
-  { key: "NEW", title: "Baru", icon: BellRing, accent: "text-status-waiting-fg" },
-  { key: "ACCEPTED", title: "Diterima", icon: CheckCircle2, accent: "text-accent-foreground" },
-  { key: "PREPARING", title: "Memasak", icon: Flame, accent: "text-status-preparing-fg" },
-  { key: "READY", title: "Siap", icon: ChefHat, accent: "text-status-ready-fg" },
-];
-
-const stations = ["Semua Stasiun", "Wok", "Grill", "Bar"];
+    { key: "NEW", title: "Baru", icon: BellRing, accent: "text-status-waiting-fg" },
+    { key: "ACCEPTED", title: "Diterima", icon: CheckCircle2, accent: "text-accent-foreground" },
+    { key: "PREPARING", title: "Memasak", icon: Flame, accent: "text-status-preparing-fg" },
+    { key: "READY", title: "Siap", icon: ChefHat, accent: "text-status-ready-fg" },
+  ];
 
 function elapsed(iso: string, now: number): string {
   const s = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 1000));
@@ -43,10 +44,12 @@ function OrderCard({
   order,
   now,
   onAdvance,
+  disabled,
 }: {
   order: Order;
   now: number;
   onAdvance: (id: string) => void;
+  disabled?: boolean;
 }) {
   const mins = Math.floor((now - new Date(order.createdAt).getTime()) / 60000);
   const urgent = mins >= 12;
@@ -115,9 +118,6 @@ function OrderCard({
                   Catatan: {it.note}
                 </p>
               )}
-              <span className="mt-1 inline-block rounded bg-secondary px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground uppercase">
-                {it.station}
-              </span>
             </div>
           </li>
         ))}
@@ -132,9 +132,11 @@ function OrderCard({
       <div className="px-3 pb-3">
         <button
           onClick={() => onAdvance(order.id)}
+          disabled={disabled}
           className={cn(
             "flex h-10 w-full items-center justify-center gap-2 rounded-lg text-sm font-bold transition",
-            "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:translate-y-px",
+            "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:translate-y-px cursor-pointer",
+            disabled && "cursor-not-allowed opacity-60",
             order.kitchenStatus === "READY"
               ? "bg-status-available text-white hover:bg-status-available/90"
               : order.kitchenStatus === "PREPARING"
@@ -156,11 +158,12 @@ function OrderCard({
   );
 }
 
-export function KitchenScreen() {
-  const { orders, advanceKitchen, toast } = useStore();
-  const [station, setStation] = useState(stations[0]);
+export function KitchenScreen({ orders }: { orders: Order[] }) {
+  const router = useRouter();
+  const { toast } = useStore();
   const [query, setQuery] = useState("");
   const [now, setNow] = useState(0);
+  const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     const first = setTimeout(() => setNow(Date.now()), 0);
@@ -175,9 +178,6 @@ export function KitchenScreen() {
     const q = query.trim().toLowerCase();
     return orders.filter((o) => {
       if (o.status === "COMPLETED" || o.status === "CANCELLED") return false;
-      if (station !== "Semua Stasiun") {
-        if (!o.items.some((i) => i.station === station)) return false;
-      }
       if (q) {
         const hay = `${o.code} ${o.tableCode} ${o.items
           .map((i) => i.productName)
@@ -186,7 +186,7 @@ export function KitchenScreen() {
       }
       return true;
     });
-  }, [orders, station, query]);
+  }, [orders, query]);
 
   const counts = {
     NEW: active.filter((o) => o.kitchenStatus === "NEW").length,
@@ -196,15 +196,27 @@ export function KitchenScreen() {
   };
 
   const handleAdvance = (id: string) => {
-    const o = orders.find((x) => x.id === id);
-    advanceKitchen(id);
-    if (o && o.kitchenStatus === "PREPARING") {
-      toast({
-        title: `Pesanan meja ${o.tableCode} siap`,
-        description: "Beri tahu waiter untuk menyajikan.",
-        tone: "success",
-      });
-    }
+    const order = orders.find((item) => item.id === id);
+    startTransition(async () => {
+      const result = await advanceKitchenAction(id);
+      if (result.error) {
+        toast({
+          title: "Gagal memperbarui order",
+          description: result.error,
+          tone: "error",
+        });
+        return;
+      }
+
+      if (order && order.kitchenStatus === "PREPARING") {
+        toast({
+          title: `Pesanan meja ${order.tableCode} siap`,
+          description: "Beri tahu waiter untuk menyajikan.",
+          tone: "success",
+        });
+      }
+      router.refresh();
+    });
   };
 
   return (
@@ -251,34 +263,6 @@ export function KitchenScreen() {
           </div>
 
           <SignOutButton />
-        </div>
-
-        {/* Station filter */}
-        <div
-          role="tablist"
-          aria-label="Filter stasiun"
-          className="flex gap-2 overflow-x-auto border-t border-border px-4 py-2 lg:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {stations.map((s) => {
-            const active2 = s === station;
-            return (
-              <button
-                key={s}
-                role="tab"
-                aria-selected={active2}
-                onClick={() => setStation(s)}
-                className={cn(
-                  "h-8 shrink-0 rounded-full border px-3.5 text-xs font-bold whitespace-nowrap transition",
-                  "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                  active2
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-card hover:bg-accent/50"
-                )}
-              >
-                {s}
-              </button>
-            );
-          })}
         </div>
       </header>
 
@@ -327,6 +311,7 @@ export function KitchenScreen() {
                       order={o}
                       now={now}
                       onAdvance={handleAdvance}
+                      disabled={pending}
                     />
                   ))
                 )}
@@ -357,16 +342,16 @@ export function KitchenScreen() {
             {rupiah(
               active.length
                 ? Math.round(
-                    active.reduce(
-                      (s, o) =>
-                        s +
-                        o.items.reduce(
-                          (x, i) => x + (i.unitPrice + i.modifierDelta) * i.quantity,
-                          0
-                        ),
-                      0
-                    ) / active.length
-                  )
+                  active.reduce(
+                    (s, o) =>
+                      s +
+                      o.items.reduce(
+                        (x, i) => x + (i.unitPrice + i.modifierDelta) * i.quantity,
+                        0
+                      ),
+                    0
+                  ) / active.length
+                )
                 : 0
             )}
           </span>

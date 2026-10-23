@@ -1,71 +1,35 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Minus, Plus, Star } from "lucide-react";
+import { useState } from "react";
+import { Minus, Plus } from "lucide-react";
+import { ProductImage } from "@/components/customer/product-image";
 import {
   Dialog,
   DialogContent,
-  DialogTitle,
   DialogDescription,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { modifierGroups, rupiah } from "@/lib/mock-data";
-import type { Modifier, Product } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { rupiah } from "@/lib/format";
+import type { MenuProduct } from "@/lib/types";
 
 export function ProductDetailDialog({
   product,
   onOpenChange,
   onAdd,
 }: {
-  product: Product | null;
+  product: MenuProduct | null;
   onOpenChange: (open: boolean) => void;
-  onAdd: (p: Product, mods: Modifier[], qty: number, note: string) => void;
+  onAdd: (p: MenuProduct, qty: number, note: string) => void;
 }) {
   const [qty, setQty] = useState(1);
-  const [picked, setPicked] = useState<Record<string, string[]>>({});
   const [note, setNote] = useState("");
 
-  const groups = useMemo(
-    () =>
-      (product?.modifierGroupIds ?? [])
-        .map((id) => modifierGroups.find((g) => g.id === id))
-        .filter(Boolean),
-    [product]
-  );
-
   if (!product) return null;
-
-  const selectedMods: Modifier[] = groups.flatMap((g) =>
-    (picked[g!.id] ?? []).flatMap((oid) =>
-      g!.options.find((o) => o.id === oid) ? [g!.options.find((o) => o.id === oid)!] : []
-    )
-  );
-
-  const missingRequired = groups.some(
-    (g) => g!.required && (picked[g!.id] ?? []).length === 0
-  );
-
-  const unitPrice =
-    product.price + selectedMods.reduce((s, m) => s + m.priceDelta, 0);
-
-  const toggle = (groupId: string, optId: string, single: boolean) => {
-    setPicked((prev) => {
-      const cur = prev[groupId] ?? [];
-      if (single) return { ...prev, [groupId]: cur[0] === optId ? [] : [optId] };
-      return {
-        ...prev,
-        [groupId]: cur.includes(optId)
-          ? cur.filter((x) => x !== optId)
-          : [...cur, optId],
-      };
-    });
-  };
 
   const handleOpen = (open: boolean) => {
     if (!open) {
       setQty(1);
-      setPicked({});
       setNote("");
     }
     onOpenChange(open);
@@ -74,23 +38,12 @@ export function ProductDetailDialog({
   return (
     <Dialog open={!!product} onOpenChange={handleOpen}>
       <DialogContent className="top-[50%] max-h-[90dvh] w-[calc(100vw-2rem)] max-w-lg gap-0 overflow-y-auto rounded-2xl p-0 sm:max-w-lg">
-        <div className="relative flex h-40 items-center justify-center bg-gradient-to-br from-secondary to-accent/50">
-          <span className="text-7xl drop-shadow-md" aria-hidden>
-            {product.imageEmoji}
-          </span>
-          <div className="absolute top-3 left-3 flex gap-2">
-            {product.popular && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-status-waiting-bg px-2 py-1 text-[11px] font-bold text-status-waiting-fg">
-                <Star className="size-3 fill-current" aria-hidden />
-                Favorit
-              </span>
-            )}
-            {!product.available && (
-              <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-bold text-muted-foreground">
-                Habis
-              </span>
-            )}
-          </div>
+        <div className="relative h-40 w-full overflow-hidden bg-linear-to-br from-secondary to-accent/50">
+          <ProductImage
+            src={product.imageUrl}
+            alt={product.name}
+            sizes="(max-width: 640px) 100vw, 512px"
+          />
         </div>
 
         <div className="space-y-5 p-5">
@@ -106,71 +59,8 @@ export function ProductDetailDialog({
             </p>
           </div>
 
-          {groups.map((g) => {
-            const group = g!;
-            const sel = picked[group.id] ?? [];
-            return (
-              <fieldset key={group.id}>
-                <legend className="mb-2 flex w-full items-center justify-between text-sm font-bold">
-                  <span>{group.name}</span>
-                  <span
-                    className={cn(
-                      "text-xs font-medium",
-                      group.required && sel.length === 0
-                        ? "text-status-waiting-fg"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    {group.required
-                      ? sel.length === 0
-                        ? "Wajib pilih"
-                        : "Wajib · terpilih"
-                      : `Opsional${group.maxPick > 1 ? " · maks " + group.maxPick : ""}`}
-                  </span>
-                </legend>
-                <div className="grid grid-cols-2 gap-2">
-                  {group.options.map((opt) => {
-                    const active = sel.includes(opt.id);
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() =>
-                          toggle(group.id, opt.id, group.maxPick === 1)
-                        }
-                        aria-pressed={active}
-                        className={cn(
-                          "flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm font-medium transition",
-                          "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                          active
-                            ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                            : "border-border bg-card hover:border-primary/50 hover:bg-accent/40"
-                        )}
-                      >
-                        <span>{opt.name}</span>
-                        {opt.priceDelta > 0 && (
-                          <span
-                            className={cn(
-                              "tnum text-xs font-bold",
-                              active ? "text-primary-foreground" : "text-primary"
-                            )}
-                          >
-                            +{rupiah(opt.priceDelta)}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            );
-          })}
-
           <div>
-            <label
-              htmlFor="note"
-              className="mb-2 block text-sm font-bold"
-            >
+            <label htmlFor="note" className="mb-2 block text-sm font-bold">
               Catatan
             </label>
             <textarea
@@ -189,7 +79,7 @@ export function ProductDetailDialog({
                 type="button"
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
                 aria-label="Kurangi jumlah"
-                className="flex size-9 items-center justify-center rounded-full text-foreground transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                className="flex size-9 items-center justify-center rounded-full text-foreground transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none cursor-pointer"
               >
                 <Minus className="size-4" aria-hidden />
               </button>
@@ -200,22 +90,19 @@ export function ProductDetailDialog({
                 type="button"
                 onClick={() => setQty((q) => Math.min(20, q + 1))}
                 aria-label="Tambah jumlah"
-                className="flex size-9 items-center justify-center rounded-full text-foreground transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                className="flex size-9 items-center justify-center rounded-full text-foreground transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none cursor-pointer"
               >
                 <Plus className="size-4" aria-hidden />
               </button>
             </div>
             <Button
-              className="h-11 flex-1 rounded-full text-sm font-bold"
-              disabled={!product.available || missingRequired}
+              className="h-11 flex-1 rounded-full text-sm font-bold cursor-pointer"
               onClick={() => {
-                onAdd(product, selectedMods, qty, note);
+                onAdd(product, qty, note);
                 handleOpen(false);
               }}
             >
-              {missingRequired
-                ? "Pilih opsi wajib dulu"
-                : `Tambah · ${rupiah(unitPrice * qty)}`}
+              Tambah · {rupiah(product.price * qty)}
             </Button>
           </div>
         </div>

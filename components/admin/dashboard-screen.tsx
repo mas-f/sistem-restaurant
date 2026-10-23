@@ -13,33 +13,60 @@ import {
 import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { TimeLabel } from "@/components/time-label";
-import { ingredients, products, rupiah } from "@/lib/mock-data";
-import { useStore } from "@/lib/store";
+import { rupiah } from "@/lib/format";
+import type { DiningTable, Order } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export function DashboardScreen() {
-  const { orders, payments, tables } = useStore();
-  const todayRevenue = payments.reduce((s, p) => s + p.amount, 0);
-  const activeOrders = orders.filter(
-    (o) => o.status !== "COMPLETED" && o.status !== "CANCELLED"
-  );
+type LowStockItem = {
+  id: string;
+  name: string;
+  unit: string;
+  stock: number;
+  minStock: number;
+};
+
+type DashboardScreenProps = {
+  tables: DiningTable[];
+  activeOrders: Order[];
+  ordersTodayCount: number;
+  todayRevenue: number;
+  yesterdayRevenue: number;
+  lowStock: LowStockItem[];
+  unavailableNames: string[];
+};
+
+export function DashboardScreen({
+  tables,
+  activeOrders,
+  ordersTodayCount,
+  todayRevenue,
+  yesterdayRevenue,
+  lowStock,
+  unavailableNames,
+}: DashboardScreenProps) {
   const occupied = tables.filter((t) => t.status === "OCCUPIED").length;
   const waiting = tables.filter((t) => t.status === "WAITING_PAYMENT").length;
-  const lowStock = ingredients.filter((i) => i.stock < i.minStock);
-  const unavailable = products.filter((p) => !p.available);
+
+  const revenueDelta =
+    yesterdayRevenue > 0
+      ? `${todayRevenue >= yesterdayRevenue ? "+" : ""}${(
+          ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) *
+          100
+        ).toLocaleString("id-ID", { maximumFractionDigits: 1 })}% vs kemarin`
+      : "belum ada pembanding kemarin";
 
   const kpis = [
     {
       label: "Pendapatan Hari Ini",
       value: rupiah(todayRevenue),
-      delta: "+12,4% vs kemarin",
+      delta: revenueDelta,
       icon: TrendingUp,
       tone: "text-status-ready-fg bg-status-available-bg",
     },
     {
       label: "Pesanan Aktif",
       value: String(activeOrders.length),
-      delta: `${orders.length} total hari ini`,
+      delta: `${ordersTodayCount} total hari ini`,
       icon: Flame,
       tone: "text-status-preparing-fg bg-status-waiting-bg",
     },
@@ -201,12 +228,12 @@ export function DashboardScreen() {
                 </li>
               );
             })}
-            {unavailable.length > 0 && (
+            {unavailableNames.length > 0 && (
               <li className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
                 <strong className="text-foreground">
-                  {unavailable.length} menu habis
+                  {unavailableNames.length} menu habis
                 </strong>{" "}
-                : {unavailable.map((p) => p.name).join(", ")}
+                : {unavailableNames.join(", ")}
               </li>
             )}
           </ul>
@@ -241,7 +268,7 @@ export function DashboardScreen() {
 
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <Clock className="size-3.5" aria-hidden />
-        Data diperbarui real-time dari mock store.
+        Data diperbarui dari database.
       </p>
     </div>
   );

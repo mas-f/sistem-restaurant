@@ -18,7 +18,6 @@ import {
   tables as seedTables,
 } from "./mock-data";
 import type {
-  BillStatus,
   DiningTable,
   KitchenStatus,
   Order,
@@ -43,14 +42,12 @@ interface StoreState {
   toasts: ToastMsg[];
   cart: Order["items"];
   lastOrderId: string | null;
-  billRequestedFor: string | null;
   addToCart: (item: Order["items"][number]) => void;
   updateQty: (itemId: string, qty: number) => void;
   removeItem: (itemId: string) => void;
   clearCart: () => void;
   placeOrder: (tableToken: string, tableCode: string) => string;
   advanceKitchen: (orderId: string) => void;
-  setBillStatus: (tableId: string, status: BillStatus) => void;
   payTable: (tableId: string, method: PaymentMethod) => void;
   openTable: (tableId: string) => void;
   toast: (t: Omit<ToastMsg, "id">) => void;
@@ -70,7 +67,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Order["items"]>([]);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
-  const [billRequestedFor, setBillRequestedFor] = useState<string | null>(null);
 
   const toast = useCallback((t: Omit<ToastMsg, "id">) => {
     const id = ++seq;
@@ -146,17 +142,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const setBillStatus = useCallback(
-    (tableId: string, status: BillStatus) => {
-      setSessions((prev) =>
-        prev.map((s) => (s.tableId === tableId ? { ...s, billStatus: status } : s))
-      );
-      if (status === "REQUESTED") setBillRequestedFor(tableId);
-      if (status === "PAID") setBillRequestedFor(null);
-    },
-    []
-  );
-
   const payTable = useCallback(
     (tableId: string, method: PaymentMethod) => {
       const tbl = tables.find((t) => t.id === tableId);
@@ -207,9 +192,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const methodLabel: Record<PaymentMethod, string> = {
         QRIS: "QRIS",
         CASH: "Tunai",
-        DEBIT: "Debit",
-        CREDIT: "Kredit",
-        EWALLET: "E-Wallet",
       };
       toast({
         title: "Pembayaran berhasil",
@@ -245,23 +227,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       toasts,
       cart,
       lastOrderId,
-      billRequestedFor,
       addToCart,
       updateQty,
       removeItem,
       clearCart,
       placeOrder,
       advanceKitchen,
-      setBillStatus,
       payTable,
       openTable,
       toast,
       dismissToast,
     }),
     [
-      tables, sessions, orders, payments, toasts, cart, lastOrderId, billRequestedFor,
+      tables, sessions, orders, payments, toasts, cart, lastOrderId,
       addToCart, updateQty, removeItem, clearCart, placeOrder, advanceKitchen,
-      setBillStatus, payTable, openTable, toast, dismissToast,
+      payTable, openTable, toast, dismissToast,
     ]
   );
 

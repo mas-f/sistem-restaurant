@@ -131,7 +131,7 @@ export const products: Product[] = [
 export const tables: DiningTable[] = [
   { id: "tbl-1", code: "A01", seats: 4, area: "Indoor", status: "OCCUPIED", sessionToken: "sess_a01_9842" },
   { id: "tbl-2", code: "A02", seats: 4, area: "Indoor", status: "AVAILABLE", sessionToken: "" },
-  { id: "tbl-3", code: "A03", seats: 2, area: "Indoor", status: "WAITING_PAYMENT", sessionToken: "sess_a03_9838" },
+  { id: "tbl-3", code: "A03", seats: 2, area: "Indoor", status: "OCCUPIED", sessionToken: "sess_a03_9838" },
   { id: "tbl-4", code: "A04", seats: 4, area: "Indoor", status: "AVAILABLE", sessionToken: "" },
   { id: "tbl-5", code: "A05", seats: 6, area: "Indoor", status: "RESERVED", sessionToken: "" },
   { id: "tbl-6", code: "B01", seats: 4, area: "Teras", status: "OCCUPIED", sessionToken: "sess_b01_9839" },
@@ -143,7 +143,7 @@ export const tables: DiningTable[] = [
 
 export const sessions: TableSession[] = [
   { id: "ses-1", tableId: "tbl-1", guests: 2, startedAt: at("2026-10-06T11:40:00"), billStatus: "NOT_REQUESTED", orderIds: ["ord-1", "ord-4"] },
-  { id: "ses-2", tableId: "tbl-3", guests: 3, startedAt: at("2026-10-06T11:12:00"), billStatus: "REQUESTED", orderIds: ["ord-2"] },
+  { id: "ses-2", tableId: "tbl-3", guests: 3, startedAt: at("2026-10-06T11:12:00"), billStatus: "NOT_REQUESTED", orderIds: ["ord-2"] },
   { id: "ses-3", tableId: "tbl-6", guests: 2, startedAt: at("2026-10-06T11:55:00"), billStatus: "NOT_REQUESTED", orderIds: ["ord-3"] },
   { id: "ses-4", tableId: "tbl-10", guests: 5, startedAt: at("2026-10-06T12:02:00"), billStatus: "NOT_REQUESTED", orderIds: ["ord-5"] },
 ];
@@ -236,7 +236,7 @@ export const orders: Order[] = [
 
 // 15 pembayaran — PRD §27
 export const payments: Payment[] = Array.from({ length: 15 }, (_, i) => {
-  const methods = ["QRIS", "CASH", "DEBIT", "EWALLET", "CREDIT"] as const;
+  const methods = ["QRIS", "CASH"] as const;
   const order = orders[i % orders.length];
   return {
     id: `pay-${i + 1}`,
@@ -295,6 +295,6 @@ export const shifts: Shift[] = [
   { id: "shf-8", staffId: "stf-3", date: dayStr(1), clockIn: "16:00", clockOut: "23:00" },
 ];
 
-export function rupiah(n: number): string {
-  return "Rp" + n.toLocaleString("id-ID");
-}
+// Formatter dipindah ke lib/format.ts; re-export menjaga import lama tetap
+// berjalan selama layar mock belum dimigrasikan.
+export { rupiah } from "./format";

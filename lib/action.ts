@@ -2,12 +2,19 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { signIn, signOut } from "@/auth";
+import { auth, signIn, signOut } from "@/auth";
 import { AuthError } from "next-auth";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isUserRole, ROLE_PATH } from "@/lib/auth-types";
+import { isUserRole, ROLE_PATH, type UserRole } from "@/lib/auth-types";
 import { removeProductImage } from "@/lib/supabase-storage";
+import { stationForCategory } from "@/lib/menu";
+import {
+  makeOrderCode,
+  toDbPaymentMethod,
+  toDbStation,
+} from "@/lib/order-utils";
+import type { PaymentMethod } from "@/lib/types";
 
 export const loginAction = async (_prevState: { error?: string }, formData: FormData): Promise<{ error?: string }> => {
   const email = formData.get("email");
@@ -555,6 +562,17 @@ export const deleteTableAction = async (
       };
     }
 
+    // Riwayat sesi/order/payment tidak boleh ikut terhapus. Meja yang pernah
+    // dipakai tetap disimpan agar struk dan laporan lama tidak kehilangan relasi.
+    const sessionCount = await prisma.tableSession.count({
+      where: { tableId: id },
+    });
+    if (sessionCount > 0) {
+      return {
+        error: `Meja ${table.code} punya riwayat sesi — meja tidak bisa dihapus.`,
+      };
+    }
+
     await prisma.diningTable.delete({ where: { id } });
   } catch (error) {
     console.error("[action] deleteTable gagal:", error);
@@ -563,4 +581,480 @@ export const deleteTableAction = async (
 
   revalidatePath("/admin/tables");
   return {};
+};
+
+// ---------------------------------------------------------------------------
+// Order / table session / payment actions
+// ---------------------------------------------------------------------------
+
+class OrderActionError extends Error {}
+
+async function requireRole(roles: UserRole[]) {
+  const session = await auth();
+  const role = session?.user?.role;
+  if (!role || !isUserRole(role) || !roles.includes(role)) return null;
+  return session.user;
+}
+
+async function findTableByToken(raw: string) {
+  const token = raw.trim();
+  if (!token) return null;
+
+  return prisma.diningTable.findFirst({
+    where: {
+      OR: [
+        { sessionToken: token },
+        { code: { equals: token, mode: "insensitive" } },
+      ],
+    },
+    select: {
+      id: true,
+      code: true,
+      seats: true,
+      status: true,
+      sessionToken: true,
+    },
+  });
+}
+
+export interface CreateOrderItemInput {
+  productId: string;
+  quantity: number;
+  note?: string;
+}
+
+export interface CreateOrderInput {
+  tableToken: string;
+  items: CreateOrderItemInput[];
+}
+
+export interface CreateOrderResult {
+  error?: string;
+  orderId?: string;
+  code?: string;
+}
+
+const ORDER_ITEM_MAX = 50;
+const ORDER_QTY_MAX = 99;
+const ORDER_NOTE_MAX = 200;
+
+function parseOrderItems(
+  input: CreateOrderItemInput[] | undefined
+): { items: { productId: string; quantity: number; note: string }[] } | { error: string } {
+  if (!Array.isArray(input) || input.length === 0) {
+    return { error: "Keranjang masih kosong." };
+  }
+
+  if (input.length > ORDER_ITEM_MAX) {
+    return { error: `Maksimal ${ORDER_ITEM_MAX} item per pesanan.` };
+  }
+
+  const items: { productId: string; quantity: number; note: string }[] = [];
+
+  for (const raw of input) {
+    if (!raw || typeof raw.productId !== "string" || !raw.productId.trim()) {
+      return { error: "Ada item pesanan yang tidak valid." };
+    }
+
+    const quantity = Number(raw.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > ORDER_QTY_MAX) {
+      return { error: `Jumlah item harus antara 1 dan ${ORDER_QTY_MAX}.` };
+    }
+
+    const note =
+      typeof raw.note === "string"
+        ? raw.note.trim().slice(0, ORDER_NOTE_MAX)
+        : "";
+
+    items.push({ productId: raw.productId.trim(), quantity, note });
+  }
+
+  return { items };
+}
+
+/**
+ * Tamu mengirim pesanan dari keranjang. Harga dan subtotal selalu dihitung
+ * ulang dari produk di database — input client hanya berisi productId,
+ * quantity, dan catatan.
+ */
+export const createOrderAction = async (
+  input: CreateOrderInput
+): Promise<CreateOrderResult> => {
+  const table = await findTableByToken(input?.tableToken ?? "");
+  if (!table) {
+    return { error: "Meja tidak ditemukan. Scan ulang QR di meja." };
+  }
+
+  if (table.status === "reserved" || table.status === "cleaning") {
+    return { error: "Meja ini belum bisa menerima pesanan. Hubungi staf." };
+  }
+
+  if (table.status === "waiting_payment") {
+    return { error: "Tagihan meja ini sudah diminta. Silakan hubungi kasir." };
+  }
+
+  const parsed = parseOrderItems(input?.items);
+  if ("error" in parsed) return { error: parsed.error };
+
+  const productIds = [...new Set(parsed.items.map((item) => item.productId))];
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    include: { category: { select: { name: true, slug: true } } },
+  });
+
+  if (products.length !== productIds.length) {
+    return { error: "Ada produk yang sudah tidak tersedia. Muat ulang menu." };
+  }
+
+  const productById = new Map(products.map((product) => [product.id, product]));
+
+  const items = parsed.items.map((item) => {
+    const product = productById.get(item.productId)!;
+    return {
+      productId: product.id,
+      productName: product.name,
+      quantity: item.quantity,
+      unitPrice: product.price,
+      station: toDbStation(stationForCategory(product.category)),
+      note: item.note,
+    };
+  });
+
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.unitPrice * item.quantity,
+    0
+  );
+  const total = subtotal;
+  const code = makeOrderCode("ORD");
+
+  try {
+    const order = await prisma.$transaction(async (tx) => {
+      let session = await tx.tableSession.findFirst({
+        where: { tableId: table.id, status: "open" },
+        select: { id: true, billStatus: true },
+      });
+
+      if (
+        session &&
+        (session.billStatus === "requested" ||
+          session.billStatus === "processing" ||
+          session.billStatus === "paid")
+      ) {
+        throw new OrderActionError(
+          "Tagihan meja ini sudah diminta. Silakan hubungi kasir."
+        );
+      }
+
+      if (!session) {
+        session = await tx.tableSession.create({
+          data: { tableId: table.id, guests: 1, status: "open" },
+          select: { id: true, billStatus: true },
+        });
+      }
+
+      await tx.diningTable.update({
+        where: { id: table.id },
+        data: { status: "occupied" },
+      });
+
+      return tx.order.create({
+        data: {
+          code,
+          sessionId: session.id,
+          tableCode: table.code,
+          subtotal,
+          total,
+          items: { create: items },
+        },
+        select: { id: true, code: true },
+      });
+    });
+
+    revalidatePath("/staff/kitchen");
+    revalidatePath("/staff/cashier");
+    revalidatePath("/staff/orders");
+    revalidatePath("/admin/orders");
+
+    return { orderId: order.id, code: order.code };
+  } catch (error) {
+    if (error instanceof OrderActionError) {
+      return { error: error.message };
+    }
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { error: "Pesanan lain sedang diproses. Coba kirim sekali lagi." };
+    }
+
+    console.error("[action] createOrder gagal:", error);
+    return { error: "Gagal membuat pesanan. Coba lagi." };
+  }
+};
+
+export const openTableAction = async (
+  tableId: string
+): Promise<{ error?: string }> => {
+  const user = await requireRole(["cashier", "admin"]);
+  if (!user) return { error: "Akses ditolak." };
+
+  const table = await prisma.diningTable.findUnique({
+    where: { id: tableId },
+    select: { id: true, code: true, status: true },
+  });
+
+  if (!table) return { error: "Meja tidak ditemukan." };
+  if (table.status === "occupied" || table.status === "waiting_payment") {
+    return { error: `Meja ${table.code} sudah memiliki sesi aktif.` };
+  }
+
+  const existing = await prisma.tableSession.findFirst({
+    where: { tableId: table.id, status: "open" },
+    select: { id: true },
+  });
+  if (existing) {
+    return { error: `Meja ${table.code} sudah memiliki sesi aktif.` };
+  }
+
+  try {
+    await prisma.$transaction([
+      prisma.tableSession.create({
+        data: { tableId: table.id, guests: 1, status: "open" },
+      }),
+      prisma.diningTable.update({
+        where: { id: table.id },
+        data: { status: "occupied" },
+      }),
+    ]);
+  } catch (error) {
+    console.error("[action] openTable gagal:", error);
+    return { error: "Gagal membuka sesi meja. Coba lagi." };
+  }
+
+  revalidatePath("/staff/cashier");
+  return {};
+};
+
+export const advanceKitchenAction = async (
+  orderId: string
+): Promise<{ error?: string }> => {
+  const user = await requireRole(["kitchen", "admin"]);
+  if (!user) return { error: "Akses ditolak." };
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { id: true, kitchenStatus: true, status: true, tableCode: true },
+  });
+
+  if (!order) return { error: "Order tidak ditemukan." };
+  if (order.status === "cancelled" || order.status === "completed") {
+    return { error: `Order meja ${order.tableCode} sudah selesai.` };
+  }
+
+  const next: Record<
+    "new" | "accepted" | "preparing" | "ready",
+    {
+      kitchenStatus: "new" | "accepted" | "preparing" | "ready";
+      status: "pending" | "confirmed" | "preparing" | "ready" | "completed";
+    }
+  > = {
+    new: { kitchenStatus: "accepted", status: "confirmed" },
+    accepted: { kitchenStatus: "preparing", status: "preparing" },
+    preparing: { kitchenStatus: "ready", status: "ready" },
+    ready: { kitchenStatus: "ready", status: "completed" },
+  };
+
+  await prisma.order.update({
+    where: { id: order.id },
+    data: next[order.kitchenStatus],
+  });
+
+  revalidatePath("/staff/kitchen");
+  revalidatePath("/staff/cashier");
+  revalidatePath("/staff/orders");
+  revalidatePath("/admin/orders");
+  return {};
+};
+
+export interface PayOrdersInput {
+  tableId: string;
+  orderIds: string[];
+  method: PaymentMethod;
+  amountReceived?: number | null;
+}
+
+export interface PayOrdersResult {
+  error?: string;
+  paymentId?: string;
+  code?: string;
+  total?: number;
+  amountReceived?: number | null;
+  change?: number | null;
+  orderCodes?: string[];
+  sessionClosed?: boolean;
+}
+
+class PaymentActionError extends Error {}
+
+const PAYMENT_METHODS: PaymentMethod[] = ["QRIS", "CASH"];
+
+export const payOrdersAction = async (
+  input: PayOrdersInput
+): Promise<PayOrdersResult> => {
+  const user = await requireRole(["cashier", "admin"]);
+  if (!user) return { error: "Akses ditolak." };
+
+  if (!input || !PAYMENT_METHODS.includes(input.method)) {
+    return { error: "Metode pembayaran tidak valid." };
+  }
+
+  const orderIds = [
+    ...new Set(
+      Array.isArray(input.orderIds)
+        ? input.orderIds.filter(
+            (id): id is string => typeof id === "string" && id.length > 0
+          )
+        : []
+    ),
+  ];
+
+  if (orderIds.length === 0) {
+    return { error: "Pilih minimal satu order untuk dibayar." };
+  }
+  if (orderIds.length > 100) {
+    return { error: "Terlalu banyak order dalam satu pembayaran." };
+  }
+
+  const table = await prisma.diningTable.findUnique({
+    where: { id: input.tableId },
+    select: { id: true, code: true },
+  });
+  if (!table) return { error: "Meja tidak ditemukan." };
+
+  const code = makeOrderCode("PAY");
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const session = await tx.tableSession.findFirst({
+        where: { tableId: table.id, status: "open" },
+        select: { id: true },
+      });
+
+      if (!session) {
+        throw new PaymentActionError("Tidak ada sesi aktif di meja ini.");
+      }
+
+      const selectedOrders = await tx.order.findMany({
+        where: {
+          id: { in: orderIds },
+          sessionId: session.id,
+          paymentId: null,
+          status: { not: "cancelled" },
+        },
+        select: { id: true, code: true, total: true },
+      });
+
+      if (selectedOrders.length !== orderIds.length) {
+        throw new PaymentActionError(
+          "Sebagian order sudah dibayar atau tidak lagi tersedia. Muat ulang halaman."
+        );
+      }
+
+      const total = selectedOrders.reduce(
+        (sum, order) => sum + order.total,
+        0
+      );
+      const isCash = input.method === "CASH";
+      const received = isCash ? Number(input.amountReceived) : null;
+
+      if (isCash) {
+        if (!Number.isInteger(received) || received === null || received < 0) {
+          throw new PaymentActionError("Uang diterima tidak valid.");
+        }
+        if (received < total) {
+          throw new PaymentActionError(
+            "Uang diterima kurang dari total order yang dipilih."
+          );
+        }
+      }
+
+      const change = isCash && received !== null ? received - total : null;
+
+      const payment = await tx.payment.create({
+        data: {
+          code,
+          sessionId: session.id,
+          amount: total,
+          method: toDbPaymentMethod(input.method),
+          status: "paid",
+          amountReceived: isCash ? received : null,
+          change,
+          cashierId: user.id,
+          paidAt: new Date(),
+        },
+        select: { id: true },
+      });
+
+      // Conditional update mencegah dua kasir membayar order yang sama.
+      const updated = await tx.order.updateMany({
+        where: {
+          id: { in: orderIds },
+          sessionId: session.id,
+          paymentId: null,
+          status: { not: "cancelled" },
+        },
+        data: { paymentId: payment.id },
+      });
+
+      if (updated.count !== orderIds.length) {
+        throw new PaymentActionError(
+          "Order berubah saat pembayaran diproses. Muat ulang halaman."
+        );
+      }
+
+      const remaining = await tx.order.count({
+        where: {
+          sessionId: session.id,
+          paymentId: null,
+          status: { not: "cancelled" },
+        },
+      });
+
+      const sessionClosed = remaining === 0;
+
+      if (sessionClosed) {
+        await tx.tableSession.update({
+          where: { id: session.id },
+          data: { status: "closed", billStatus: "paid", closedAt: new Date() },
+        });
+        await tx.diningTable.update({
+          where: { id: table.id },
+          data: { status: "available" },
+        });
+      }
+
+      return {
+        paymentId: payment.id,
+        total,
+        amountReceived: isCash ? received : null,
+        change,
+        orderCodes: selectedOrders.map((order) => order.code),
+        sessionClosed,
+      };
+    });
+
+    revalidatePath("/staff/cashier");
+    revalidatePath("/staff/orders");
+    revalidatePath("/admin/orders");
+    revalidatePath("/admin/payments");
+    return { code, ...result };
+  } catch (error) {
+    if (error instanceof PaymentActionError) {
+      return { error: error.message };
+    }
+
+    console.error("[action] payOrders gagal:", error);
+    return { error: "Gagal memproses pembayaran. Coba lagi." };
+  }
 };

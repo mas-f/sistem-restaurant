@@ -23,6 +23,7 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
+  payments      Payment[]
 }
 
 model Account {
@@ -55,7 +56,8 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  category Category @relation(fields: [categoryId], references: [id])
+  category   Category    @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
 
   @@unique([slug])
 }
@@ -81,12 +83,140 @@ enum TableStatus {
 }
 
 model DiningTable {
-  id           String      @id @default(uuid())
-  code         String      @unique
+  id           String         @id @default(uuid())
+  code         String         @unique
   seats        Int
   area         String
-  status       TableStatus @default(available)
-  sessionToken String      @unique
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  status       TableStatus    @default(available)
+  sessionToken String         @unique
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  sessions     TableSession[]
+}
+
+enum SessionStatus {
+  open
+  closed
+}
+
+enum BillStatus {
+  not_requested
+  requested
+  processing
+  paid
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  ready
+  completed
+  cancelled
+}
+
+enum KitchenStatus {
+  new
+  accepted
+  preparing
+  ready
+}
+
+enum PaymentMethod {
+  cash
+  qris
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum Station {
+  grill
+  wok
+  bar
+}
+
+model TableSession {
+  id         String        @id @default(uuid())
+  tableId    String
+  guests     Int           @default(1)
+  status     SessionStatus @default(open)
+  billStatus BillStatus    @default(not_requested)
+  openedAt   DateTime      @default(now())
+  closedAt   DateTime?
+  updatedAt  DateTime      @updatedAt
+
+  table    DiningTable @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  orders   Order[]
+  payments Payment[]
+
+  @@index([tableId, status])
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  code          String        @unique
+  sessionId     String
+  tableCode     String
+  status        OrderStatus   @default(pending)
+  kitchenStatus KitchenStatus @default(new)
+  subtotal      Int
+  total         Int
+  note          String        @default("")
+  paymentId     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  session TableSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  payment Payment?     @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  items   OrderItem[]
+
+  @@index([sessionId])
+  @@index([paymentId])
+  @@index([status])
+  @@index([kitchenStatus])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          String  @id @default(uuid())
+  orderId     String
+  productId   String?
+  productName String
+  quantity    Int
+  unitPrice   Int
+  station     Station @default(grill)
+  note        String  @default("")
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  code           String        @unique
+  sessionId      String
+  amount         Int
+  method         PaymentMethod
+  status         PaymentStatus @default(paid)
+  amountReceived Int?
+  change         Int?
+  cashierId      String?
+  paidAt         DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  session TableSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  cashier User?        @relation(fields: [cashierId], references: [id], onDelete: SetNull)
+  orders  Order[]
+
+  @@index([sessionId])
+  @@index([paidAt])
 }

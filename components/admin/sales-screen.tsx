@@ -2,15 +2,12 @@
 
 import {
   BarChart3,
-  CreditCard,
   QrCode,
   Banknote,
-  Smartphone,
   TrendingUp,
 } from "lucide-react";
-import { rupiah } from "@/lib/mock-data";
-import { useStore } from "@/lib/store";
-import type { PaymentMethod } from "@/lib/types";
+import { rupiah } from "@/lib/format";
+import type { Order, PaymentMethod, PaymentView } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const methodMeta: Record<
@@ -19,13 +16,14 @@ const methodMeta: Record<
 > = {
   QRIS: { label: "QRIS", icon: QrCode },
   CASH: { label: "Tunai", icon: Banknote },
-  DEBIT: { label: "Debit", icon: CreditCard },
-  CREDIT: { label: "Kredit", icon: CreditCard },
-  EWALLET: { label: "E-Wallet", icon: Smartphone },
 };
 
-export function SalesScreen() {
-  const { orders, payments } = useStore();
+type SalesScreenProps = {
+  orders: Order[];
+  payments: PaymentView[];
+};
+
+export function SalesScreen({ orders, payments }: SalesScreenProps) {
   const totalRevenue = payments.reduce((s, p) => s + p.amount, 0);
   const byMethod = Object.entries(
     payments.reduce<Record<string, number>>((acc, p) => {

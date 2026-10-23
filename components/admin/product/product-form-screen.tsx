@@ -270,7 +270,7 @@ export function ProductFormScreen({
               <Select
                 value={categoryId}
                 onValueChange={(value) => setCategoryId(value ?? "")}
-                items={categories.map((c) => ({value: c.id, label: c.name}))}
+                items={categories.map((c) => ({ value: c.id, label: c.name }))}
                 disabled={!hasCategories}
               >
                 <SelectTrigger

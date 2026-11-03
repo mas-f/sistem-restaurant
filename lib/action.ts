@@ -9,6 +9,8 @@ import { prisma } from "@/lib/prisma";
 import { isUserRole, ROLE_PATH, type UserRole } from "@/lib/auth-types";
 import { removeProductImage } from "@/lib/supabase-storage";
 import { stationForCategory } from "@/lib/menu";
+import { isIngredientUnit } from "@/lib/inventory";
+import type { IngredientUnit } from "@/lib/generated/prisma/enums";
 import {
   makeOrderCode,
   toDbPaymentMethod,
@@ -204,12 +206,12 @@ function parseProductForm(
   formData: FormData
 ):
   | {
-      name: string;
-      description: string;
-      categoryId: string;
-      price: number;
-      imageUrl: string;
-    }
+    name: string;
+    description: string;
+    categoryId: string;
+    price: number;
+    imageUrl: string;
+  }
   | { error: string } {
   const name = formData.get("name");
   const description = formData.get("description");
@@ -587,7 +589,8 @@ export const deleteTableAction = async (
 // Order / table session / payment actions
 // ---------------------------------------------------------------------------
 
-class OrderActionError extends Error {}
+class OrderActionError extends Error { }
+class StockActionError extends Error { }
 
 async function requireRole(roles: UserRole[]) {
   const session = await auth();
@@ -895,7 +898,7 @@ export interface PayOrdersResult {
   sessionClosed?: boolean;
 }
 
-class PaymentActionError extends Error {}
+class PaymentActionError extends Error { }
 
 const PAYMENT_METHODS: PaymentMethod[] = ["QRIS", "CASH"];
 
@@ -913,8 +916,8 @@ export const payOrdersAction = async (
     ...new Set(
       Array.isArray(input.orderIds)
         ? input.orderIds.filter(
-            (id): id is string => typeof id === "string" && id.length > 0
-          )
+          (id): id is string => typeof id === "string" && id.length > 0
+        )
         : []
     ),
   ];
@@ -1057,4 +1060,653 @@ export const payOrdersAction = async (
     console.error("[action] payOrders gagal:", error);
     return { error: "Gagal memproses pembayaran. Coba lagi." };
   }
+};
+
+// ---------------------------------------------------------------------------
+// Inventory (bahan baku) & supplier actions
+// ---------------------------------------------------------------------------
+
+export interface IngredientFormState {
+  error?: string;
+}
+
+export interface SupplierFormState {
+  error?: string;
+}
+
+export interface AdjustStockResult {
+  error?: string;
+  stockAfter?: number;
+}
+
+export type AdjustStockInput =
+  | {
+    ingredientId: string;
+    type: "in" | "out";
+    quantity: number;
+    note?: string;
+  }
+  | {
+    ingredientId: string;
+    type: "adjustment";
+    targetStock: number;
+    note?: string;
+  };
+
+const STOCK_MAX = 9_999_999.99;
+const INGREDIENT_NAME_MAX = 80;
+const INGREDIENT_COST_MAX = 100_000_000;
+const STOCK_NOTE_MAX = 200;
+
+function parseStockDecimal(
+  raw: FormDataEntryValue | null,
+  label: string
+): { value: string } | { error: string } {
+  if (typeof raw !== "string" || !raw.trim()) {
+    return { error: `${label} wajib diisi.` };
+  }
+
+  const normalized = raw.trim().replace(",", ".");
+
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) {
+    return { error: `${label} harus berupa angka (maksimal 2 desimal).` };
+  }
+
+  if (Number(normalized) > STOCK_MAX) {
+    return { error: `${label} terlalu besar.` };
+  }
+
+  return { value: normalized };
+}
+
+/** Angka dari input client (bukan FormData) — dipakai dialog mutasi stok. */
+function normalizeStockNumber(value: unknown): number | null {
+  const raw =
+    typeof value === "number"
+      ? String(value)
+      : typeof value === "string"
+        ? value.trim().replace(",", ".")
+        : "";
+
+  if (!/^\d+(?:\.\d{1,2})?$/.test(raw)) return null;
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed > STOCK_MAX) return null;
+
+  return parsed;
+}
+
+/**
+ * @param fallbackUnit Satuan yang sudah tersimpan. Dipakai saat update: field
+ *   satuan bisa saja tidak ikut terkirim (mis. kontrol read-only + hidden
+ *   input), dan nilai lama harus dipertahankan, bukan ditolak.
+ */
+function parseIngredientForm(
+  formData: FormData,
+  includeStock: boolean,
+  fallbackUnit?: IngredientUnit
+):
+  | {
+    name: string;
+    unit: IngredientUnit;
+    stock: string | null;
+    minStock: string;
+    costPerUnit: number;
+    supplierId: string | null;
+    isActive: boolean;
+  }
+  | { error: string } {
+  const nameRaw = formData.get("name");
+  const unitRaw = formData.get("unit");
+  const supplierRaw = formData.get("supplierId");
+  const costRaw = formData.get("costPerUnit");
+
+  if (typeof nameRaw !== "string" || nameRaw.trim().length < 2) {
+    return { error: "Nama bahan wajib diisi (min. 2 karakter)." };
+  }
+
+  const name = nameRaw.trim();
+  if (name.length > INGREDIENT_NAME_MAX) {
+    return { error: `Nama bahan maksimal ${INGREDIENT_NAME_MAX} karakter.` };
+  }
+
+  // Saat update, field satuan bisa tidak terkirim (kontrol read-only).
+  // Nilai tersimpan menjadi acuan agar perubahan lain tetap bisa disimpan.
+  const unitValue =
+    typeof unitRaw === "string" && unitRaw.trim()
+      ? unitRaw.trim()
+      : fallbackUnit;
+
+  if (!unitValue || !isIngredientUnit(unitValue)) {
+    return { error: "Satuan wajib dipilih." };
+  }
+
+  const minStock = parseStockDecimal(formData.get("minStock"), "Stok minimum");
+  if ("error" in minStock) return { error: minStock.error };
+
+  let stock: string | null = null;
+  if (includeStock) {
+    const parsedStock = parseStockDecimal(formData.get("stock"), "Stok awal");
+    if ("error" in parsedStock) return { error: parsedStock.error };
+    stock = parsedStock.value;
+  }
+
+  if (typeof costRaw !== "string" || !/^\d+$/.test(costRaw.trim())) {
+    return { error: "Harga satuan harus berupa angka. Isi bagian Harga Satuan terlebih dahulu." };
+  }
+
+  const costPerUnit = Number.parseInt(costRaw.trim(), 10);
+  if (
+    !Number.isSafeInteger(costPerUnit) ||
+    costPerUnit < 0 ||
+    costPerUnit > INGREDIENT_COST_MAX
+  ) {
+    return { error: "Harga satuan tidak valid." };
+  }
+
+  const supplierId =
+    typeof supplierRaw === "string" && supplierRaw.trim()
+      ? supplierRaw.trim()
+      : null;
+
+  const isActive = formData.get("isActive") !== "false";
+
+  return {
+    name,
+    unit: unitValue,
+    stock,
+    minStock: minStock.value,
+    costPerUnit,
+    supplierId,
+    isActive,
+  };
+}
+
+async function findIngredientNameConflict(name: string, excludeId?: string) {
+  return prisma.ingredient.findFirst({
+    where: {
+      name: { equals: name, mode: "insensitive" },
+      ...(excludeId ? { NOT: { id: excludeId } } : {}),
+    },
+    select: { id: true },
+  });
+}
+
+async function assertSupplierExists(supplierId: string | null) {
+  if (!supplierId) return null;
+
+  return prisma.supplier.findUnique({
+    where: { id: supplierId },
+    select: { id: true },
+  });
+}
+
+export const createIngredientAction = async (
+  _prevState: IngredientFormState,
+  formData: FormData
+): Promise<IngredientFormState> => {
+  const user = await requireRole(["admin"]);
+  if (!user) return { error: "Akses ditolak." };
+
+  const parsed = parseIngredientForm(formData, true);
+  if ("error" in parsed) return { error: parsed.error };
+
+  try {
+    const [conflict, supplier] = await Promise.all([
+      findIngredientNameConflict(parsed.name),
+      assertSupplierExists(parsed.supplierId),
+    ]);
+
+    if (conflict) {
+      return { error: `Bahan "${parsed.name}" sudah terdaftar.` };
+    }
+    if (parsed.supplierId && !supplier) {
+      return { error: "Supplier tidak ditemukan. Pilih supplier lain." };
+    }
+
+    const openingStock = new Prisma.Decimal(parsed.stock ?? "0");
+
+    await prisma.$transaction(async (tx) => {
+      const ingredient = await tx.ingredient.create({
+        data: {
+          name: parsed.name,
+          unit: parsed.unit,
+          stock: openingStock,
+          minStock: new Prisma.Decimal(parsed.minStock),
+          costPerUnit: parsed.costPerUnit,
+          supplierId: parsed.supplierId,
+        },
+        select: { id: true },
+      });
+
+      // Stok awal tetap punya jejak audit — bukan angka yang muncul diam-diam.
+      if (openingStock.gt(0)) {
+        await tx.stockMovement.create({
+          data: {
+            ingredientId: ingredient.id,
+            type: "in",
+            quantity: openingStock,
+            stockBefore: new Prisma.Decimal(0),
+            stockAfter: openingStock,
+            note: "Stok awal",
+            createdById: user.id,
+          },
+        });
+      }
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { error: `Bahan "${parsed.name}" sudah terdaftar.` };
+    }
+    console.error("[action] createIngredient gagal:", error);
+    return { error: "Gagal menyimpan bahan. Coba lagi." };
+  }
+
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin");
+  redirect("/admin/inventory");
+};
+
+export const updateIngredientAction = async (
+  _prevState: IngredientFormState,
+  formData: FormData
+): Promise<IngredientFormState> => {
+  if (!(await requireRole(["admin"]))) return { error: "Akses ditolak." };
+
+  const id = readFormId(formData);
+  if (!id) return { error: "Bahan tidak ditemukan." };
+
+  let current: { id: string; unit: IngredientUnit } | null = null;
+
+  try {
+    current = await prisma.ingredient.findUnique({
+      where: { id },
+      select: { id: true, unit: true },
+    });
+  } catch (error) {
+    console.error("[action] updateIngredient gagal:", error);
+    return { error: "Gagal menyimpan perubahan. Coba lagi." };
+  }
+
+  if (!current) return { error: "Bahan tidak ditemukan." };
+
+  // Satuan tersimpan dipakai bila form tidak mengirim field satuan (kontrol
+  // read-only untuk bahan yang sudah punya riwayat stok).
+  const parsed = parseIngredientForm(formData, false, current.unit);
+  if ("error" in parsed) return { error: parsed.error };
+
+  try {
+    const [conflict, supplier] = await Promise.all([
+      findIngredientNameConflict(parsed.name, id),
+      assertSupplierExists(parsed.supplierId),
+    ]);
+
+    if (conflict) {
+      return { error: `Bahan "${parsed.name}" sudah terdaftar.` };
+    }
+    if (parsed.supplierId && !supplier) {
+      return { error: "Supplier tidak ditemukan. Pilih supplier lain." };
+    }
+
+    // Satuan tidak boleh berubah setelah ada riwayat — angka lama akan
+    // salah tafsir bila kg berubah menjadi liter.
+    if (parsed.unit !== current.unit) {
+      const movementCount = await prisma.stockMovement.count({
+        where: { ingredientId: id },
+      });
+      if (movementCount > 0) {
+        return {
+          error:
+            "Satuan tidak bisa diubah karena bahan ini sudah punya riwayat stok.",
+        };
+      }
+    }
+
+    await prisma.ingredient.update({
+      where: { id },
+      data: {
+        name: parsed.name,
+        unit: parsed.unit,
+        minStock: new Prisma.Decimal(parsed.minStock),
+        costPerUnit: parsed.costPerUnit,
+        supplierId: parsed.supplierId,
+        isActive: parsed.isActive,
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { error: `Bahan "${parsed.name}" sudah terdaftar.` };
+    }
+    console.error("[action] updateIngredient gagal:", error);
+    return { error: "Gagal menyimpan perubahan. Coba lagi." };
+  }
+
+  revalidatePath("/admin/inventory");
+  revalidatePath(`/admin/inventory/${id}`);
+  revalidatePath("/admin");
+  redirect(`/admin/inventory/${id}`);
+};
+
+export const setIngredientActiveAction = async (
+  ingredientId: string,
+  isActive: boolean
+): Promise<{ error?: string }> => {
+  if (!(await requireRole(["admin"]))) return { error: "Akses ditolak." };
+
+  if (!ingredientId) return { error: "Bahan tidak ditemukan." };
+
+  try {
+    await prisma.ingredient.update({
+      where: { id: ingredientId },
+      data: { isActive },
+    });
+  } catch (error) {
+    console.error("[action] setIngredientActive gagal:", error);
+    return { error: "Gagal memperbarui status bahan. Coba lagi." };
+  }
+
+  revalidatePath("/admin/inventory");
+  revalidatePath(`/admin/inventory/${ingredientId}`);
+  revalidatePath("/admin");
+  return {};
+};
+
+export const adjustStockAction = async (
+  input: AdjustStockInput
+): Promise<AdjustStockResult> => {
+  const user = await requireRole(["admin"]);
+  if (!user) return { error: "Akses ditolak." };
+
+  if (!input || typeof input.ingredientId !== "string" || !input.ingredientId) {
+    return { error: "Bahan tidak ditemukan." };
+  }
+
+  const note =
+    typeof input.note === "string"
+      ? input.note.trim().slice(0, STOCK_NOTE_MAX)
+      : "";
+
+  const requested =
+    input.type === "adjustment"
+      ? normalizeStockNumber(input.targetStock)
+      : normalizeStockNumber(input.quantity);
+
+  if (requested === null) {
+    return {
+      error:
+        input.type === "adjustment"
+          ? "Stok hasil hitung tidak valid."
+          : "Jumlah harus berupa angka lebih dari 0 (maksimal 2 desimal).",
+    };
+  }
+
+  if (input.type !== "adjustment" && requested <= 0) {
+    return { error: "Jumlah harus lebih dari 0." };
+  }
+
+  try {
+    const stockAfter = await prisma.$transaction(async (tx) => {
+      const ingredient = await tx.ingredient.findUnique({
+        where: { id: input.ingredientId },
+        select: { id: true, name: true, unit: true, stock: true },
+      });
+
+      if (!ingredient) throw new StockActionError("Bahan tidak ditemukan.");
+
+      const before = new Prisma.Decimal(ingredient.stock);
+      const amount = new Prisma.Decimal(requested);
+      let after: Prisma.Decimal;
+
+      if (input.type === "in") {
+        after = before.plus(amount);
+      } else if (input.type === "out") {
+        if (before.lt(amount)) {
+          throw new StockActionError(
+            `Stok tidak cukup. Tersisa ${before.toFixed(2)} ${ingredient.unit}.`
+          );
+        }
+        after = before.minus(amount);
+      } else {
+        after = amount;
+        if (after.equals(before)) {
+          throw new StockActionError(
+            "Stok hasil hitung sama dengan stok saat ini — tidak ada perubahan."
+          );
+        }
+      }
+
+      // Optimistic lock: dua tab yang menyimpan bersamaan tidak boleh saling
+      // menimpa. Hanya update bila stok masih sama dengan yang dibaca.
+      const updated = await tx.ingredient.updateMany({
+        where: { id: ingredient.id, stock: before },
+        data: { stock: after },
+      });
+
+      if (updated.count === 0) {
+        throw new StockActionError(
+          "Stok berubah saat diproses. Muat ulang halaman lalu coba lagi."
+        );
+      }
+
+      await tx.stockMovement.create({
+        data: {
+          ingredientId: ingredient.id,
+          type: input.type,
+          quantity: after.minus(before),
+          stockBefore: before,
+          stockAfter: after,
+          note,
+          createdById: user.id,
+        },
+      });
+
+      return after.toNumber();
+    });
+
+    revalidatePath("/admin/inventory");
+    revalidatePath(`/admin/inventory/${input.ingredientId}`);
+    revalidatePath("/admin");
+    return { stockAfter };
+  } catch (error) {
+    if (error instanceof StockActionError) {
+      return { error: error.message };
+    }
+    console.error("[action] adjustStock gagal:", error);
+    return { error: "Gagal memperbarui stok. Coba lagi." };
+  }
+};
+
+export const deleteIngredientAction = async (
+  _prevState: IngredientFormState,
+  formData: FormData
+): Promise<IngredientFormState> => {
+  if (!(await requireRole(["admin"]))) return { error: "Akses ditolak." };
+
+  const id = readFormId(formData);
+  if (!id) return { error: "Bahan tidak ditemukan." };
+
+  try {
+    const ingredient = await prisma.ingredient.findUnique({
+      where: { id },
+      select: { name: true, _count: { select: { movements: true } } },
+    });
+    if (!ingredient) return { error: "Bahan tidak ditemukan." };
+
+    // Riwayat stok tidak boleh hilang. Bahan yang pernah dipakai cukup
+    // dinonaktifkan agar laporan lama tetap utuh.
+    if (ingredient._count.movements > 0) {
+      return {
+        error: `Bahan "${ingredient.name}" punya riwayat stok — nonaktifkan saja, tidak bisa dihapus permanen.`,
+      };
+    }
+
+    await prisma.ingredient.delete({ where: { id } });
+  } catch (error) {
+    console.error("[action] deleteIngredient gagal:", error);
+    return { error: "Gagal menghapus bahan. Coba lagi." };
+  }
+
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin");
+  redirect("/admin/inventory");
+};
+
+function parseSupplierForm(
+  formData: FormData
+):
+  | {
+    name: string;
+    contact: string;
+    phone: string;
+    email: string;
+    address: string;
+    isActive: boolean;
+  }
+  | { error: string } {
+  const name = formData.get("name");
+  const contact = formData.get("contact");
+  const phone = formData.get("phone");
+  const email = formData.get("email");
+  const address = formData.get("address");
+
+  if (typeof name !== "string" || name.trim().length < 2) {
+    return { error: "Nama supplier wajib diisi (min. 2 karakter)." };
+  }
+
+  const trimmedName = name.trim();
+  if (trimmedName.length > 80) {
+    return { error: "Nama supplier maksimal 80 karakter." };
+  }
+
+  const trimmedEmail = typeof email === "string" ? email.trim() : "";
+  if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    return { error: "Format email supplier tidak valid." };
+  }
+
+  return {
+    name: trimmedName,
+    contact: typeof contact === "string" ? contact.trim().slice(0, 80) : "",
+    phone: typeof phone === "string" ? phone.trim().slice(0, 30) : "",
+    email: trimmedEmail.slice(0, 120),
+    address: typeof address === "string" ? address.trim().slice(0, 200) : "",
+    isActive: formData.get("isActive") !== "false",
+  };
+}
+
+async function findSupplierNameConflict(name: string, excludeId?: string) {
+  return prisma.supplier.findFirst({
+    where: {
+      name: { equals: name, mode: "insensitive" },
+      ...(excludeId ? { NOT: { id: excludeId } } : {}),
+    },
+    select: { id: true },
+  });
+}
+
+export const createSupplierAction = async (
+  _prevState: SupplierFormState,
+  formData: FormData
+): Promise<SupplierFormState> => {
+  if (!(await requireRole(["admin"]))) return { error: "Akses ditolak." };
+
+  const parsed = parseSupplierForm(formData);
+  if ("error" in parsed) return { error: parsed.error };
+
+  try {
+    const conflict = await findSupplierNameConflict(parsed.name);
+    if (conflict) return { error: `Supplier "${parsed.name}" sudah terdaftar.` };
+
+    await prisma.supplier.create({ data: parsed });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { error: `Supplier "${parsed.name}" sudah terdaftar.` };
+    }
+    console.error("[action] createSupplier gagal:", error);
+    return { error: "Gagal menyimpan supplier. Coba lagi." };
+  }
+
+  revalidatePath("/admin/suppliers");
+  revalidatePath("/admin/inventory");
+  redirect("/admin/suppliers");
+};
+
+export const updateSupplierAction = async (
+  _prevState: SupplierFormState,
+  formData: FormData
+): Promise<SupplierFormState> => {
+  if (!(await requireRole(["admin"]))) return { error: "Akses ditolak." };
+
+  const id = readFormId(formData);
+  if (!id) return { error: "Supplier tidak ditemukan." };
+
+  const parsed = parseSupplierForm(formData);
+  if ("error" in parsed) return { error: parsed.error };
+
+  try {
+    const current = await prisma.supplier.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!current) return { error: "Supplier tidak ditemukan." };
+
+    const conflict = await findSupplierNameConflict(parsed.name, id);
+    if (conflict) return { error: `Supplier "${parsed.name}" sudah terdaftar.` };
+
+    await prisma.supplier.update({ where: { id }, data: parsed });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { error: `Supplier "${parsed.name}" sudah terdaftar.` };
+    }
+    console.error("[action] updateSupplier gagal:", error);
+    return { error: "Gagal menyimpan perubahan. Coba lagi." };
+  }
+
+  revalidatePath("/admin/suppliers");
+  revalidatePath("/admin/inventory");
+  redirect("/admin/suppliers");
+};
+
+export const deleteSupplierAction = async (
+  _prevState: SupplierFormState,
+  formData: FormData
+): Promise<SupplierFormState> => {
+  if (!(await requireRole(["admin"]))) return { error: "Akses ditolak." };
+
+  const id = readFormId(formData);
+  if (!id) return { error: "Supplier tidak ditemukan." };
+
+  try {
+    const supplier = await prisma.supplier.findUnique({
+      where: { id },
+      select: { name: true, _count: { select: { ingredients: true } } },
+    });
+    if (!supplier) return { error: "Supplier tidak ditemukan." };
+
+    if (supplier._count.ingredients > 0) {
+      return {
+        error: `Supplier "${supplier.name}" masih dipakai ${supplier._count.ingredients} bahan — pindahkan bahannya dulu.`,
+      };
+    }
+
+    await prisma.supplier.delete({ where: { id } });
+  } catch (error) {
+    console.error("[action] deleteSupplier gagal:", error);
+    return { error: "Gagal menghapus supplier. Coba lagi." };
+  }
+
+  revalidatePath("/admin/suppliers");
+  revalidatePath("/admin/inventory");
+  redirect("/admin/suppliers");
 };

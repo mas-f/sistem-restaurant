@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { DashboardScreen } from "@/components/admin/dashboard-screen";
-import { ingredients, products } from "@/lib/mock-data";
+import { products } from "@/lib/mock-data";
+import { getLowStockIngredients } from "@/lib/inventory-queries";
 import { getAdminDashboardData } from "@/lib/orders";
 
 export const instant = false;
@@ -11,17 +12,9 @@ export default async function AdminDashboardPage() {
   const { tables, activeOrders, ordersTodayCount, todayRevenue, yesterdayRevenue } =
     await getAdminDashboardData();
 
-  // Inventaris belum punya tabel database — pertahankan data mock sampai
-  // layar inventaris dimigrasikan.
-  const lowStock = ingredients
-    .filter((item) => item.stock < item.minStock)
-    .map(({ id, name, unit, stock, minStock }) => ({
-      id,
-      name,
-      unit,
-      stock,
-      minStock,
-    }));
+  // Inventaris sudah pindah ke database — peringatan stok membaca tabel
+  // Ingredient, bukan data mock.
+  const lowStock = await getLowStockIngredients();
   const unavailableNames = products
     .filter((product) => !product.available)
     .map((product) => product.name);

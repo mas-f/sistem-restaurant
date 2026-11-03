@@ -178,22 +178,6 @@ export interface ReceiptView {
   orders: ReceiptOrder[];
 }
 
-export interface Ingredient {
-  id: string;
-  name: string;
-  unit: string;
-  stock: number;
-  minStock: number;
-  supplierId: string;
-}
-
-export interface Supplier {
-  id: string;
-  name: string;
-  contact: string;
-  phone: string;
-}
-
 export interface Staff {
   id: string;
   name: string;

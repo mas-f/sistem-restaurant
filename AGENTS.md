@@ -31,10 +31,14 @@ screen.
   `/staff/cashier/receipt/[paymentCode]`, payment history at
   `/staff/cashier/payments`), admin/staff orders + admin payments, and the admin
   dashboard & sales dashboard (KPIs, active orders, table status, daily
-  revenue/payments, and best sellers from `lib/orders.ts`).
+  revenue/payments, and best sellers from `lib/orders.ts`). Inventory is live:
+  `Supplier`, `Ingredient`, and `StockMovement` back `/admin/inventory`
+  (KPI, status, stock in/out/adjustment, per-ingredient history) and
+  `/admin/suppliers` (CRUD), and the dashboard stock warnings read the DB.
 - **Still mock:** cart UI state and toast store (`lib/store.tsx`), restaurant metadata in
-  `lib/mock-data.ts`, the dashboard inventory/stock warnings, and the admin
-  staff/shifts/inventory/suppliers/settings screens. Modifiers are not modeled yet.
+  `lib/mock-data.ts`, and the admin staff/shifts/settings screens. Product
+  availability flags are still mock (no column in `Product`). Modifiers are not
+  modeled yet.
 
 **Scope:** the prototype-only constraint (PRD §3 Non-Goals) is lifted for this phase:
 database, Prisma, server actions, auth, and third-party services (Supabase Storage) are in
@@ -87,6 +91,16 @@ There is no test framework, formatter config, or CI in this repo. Verify with
   `Payment` may cover multiple orders. The cashier closes the session/table only when no
   unpaid orders remain. Receipts are rendered per payment code at
   `/staff/cashier/receipt/[paymentCode]` and printed through the browser (80mm CSS).
+- **Inventory stock is mutation-based:** never write `Ingredient.stock` directly outside
+  `createIngredientAction` (opening stock) or `adjustStockAction`. Every change must write
+  a `StockMovement` row (`in` / `out` / `adjustment`) with signed `quantity` and
+  `stockBefore`/`stockAfter` in the same transaction; `adjustStockAction` uses an
+  optimistic `updateMany({ where: { stock: before } })` guard. Stock columns are `Decimal`
+  — convert to `number` at the server → client boundary. Status
+  (`IN_STOCK`/`LOW_STOCK`/`OUT_OF_STOCK`) is derived via `inventoryStatus()` in
+  `lib/inventory.ts`; `lib/inventory.ts` stays free of `prisma` so client components can
+  import it (DB helpers live in `lib/inventory-queries.ts`). Ingredients and suppliers are
+  archived (`isActive=false`) when they have history; hard deletes are blocked.
 - **Auth:** `auth()` from `@/auth`; role-based route guard runs in `proxy.ts`
   (`/admin` → admin; `/staff/kitchen`, `/staff/cashier`, `/staff/orders` per role). Roles
   and role landing paths live in `lib/auth-types.ts`.

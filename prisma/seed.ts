@@ -50,6 +50,29 @@ const diningTables = [
   { code: "C02", seats: 8, area: "VIP" },
 ];
 
+// Data awal inventaris. Stok hanya dipakai saat bahan pertama kali dibuat —
+// seed berikutnya tidak boleh menimpa stok yang sudah diubah lewat mutasi.
+const suppliers = [
+  { name: "Segar Tani Sayur", contact: "Pak Handoko", phone: "0812-1111-2222" },
+  { name: "Mitra Daging Nusantara", contact: "Ibu Ratna", phone: "0813-3333-4444" },
+  { name: "Seafood Bahari Jaya", contact: "Pak Yudi", phone: "0821-5555-6666" },
+  { name: "Bumbu Dapur Prima", contact: "Siti Aminah", phone: "0857-7777-8888" },
+  { name: "Distro Minuman Dingin", contact: "Andi Wijaya", phone: "0852-9999-0000" },
+];
+
+const ingredients = [
+  { name: "Daging Ayam Fillet", unit: "kg" as const, stock: 4.2, minStock: 5, costPerUnit: 42_000, supplier: "Mitra Daging Nusantara" },
+  { name: "Bumbu Sambal Bawang", unit: "kg" as const, stock: 1.5, minStock: 3, costPerUnit: 35_000, supplier: "Bumbu Dapur Prima" },
+  { name: "Beras Pandan Wangi", unit: "kg" as const, stock: 18, minStock: 10, costPerUnit: 15_000, supplier: "Segar Tani Sayur" },
+  { name: "Daun Teh Peach Blossom", unit: "pack" as const, stock: 12, minStock: 4, costPerUnit: 28_000, supplier: "Distro Minuman Dingin" },
+  { name: "Cabai Rawit Merah", unit: "kg" as const, stock: 2.4, minStock: 3, costPerUnit: 45_000, supplier: "Segar Tani Sayur" },
+  { name: "Sapi Blackpepper", unit: "kg" as const, stock: 6.8, minStock: 4, costPerUnit: 135_000, supplier: "Mitra Daging Nusantara" },
+  { name: "Udang Segar", unit: "kg" as const, stock: 3.5, minStock: 2, costPerUnit: 90_000, supplier: "Seafood Bahari Jaya" },
+  { name: "Telur Ayam", unit: "kg" as const, stock: 9, minStock: 6, costPerUnit: 28_000, supplier: "Segar Tani Sayur" },
+  { name: "Gula Aren Cair", unit: "liter" as const, stock: 5.5, minStock: 3, costPerUnit: 22_000, supplier: "Distro Minuman Dingin" },
+  { name: "Minyak Goreng", unit: "liter" as const, stock: 11, minStock: 8, costPerUnit: 18_000, supplier: "Bumbu Dapur Prima" },
+];
+
 type DemoItem = { productIndex: number; quantity: number; note?: string };
 
 // Skenario demo lintas layar: satu meja baru, satu sedang dimasak, satu siap
@@ -234,7 +257,63 @@ async function main() {
     console.log(`Meja dibuat: ${table.code}`);
   }
 
+  await seedInventory();
   await seedDemoOrders();
+}
+
+async function seedInventory() {
+  for (const supplier of suppliers) {
+    const existing = await prisma.supplier.findUnique({
+      where: { name: supplier.name },
+      select: { id: true },
+    });
+    if (existing) {
+      console.log(`Supplier sudah ada: ${supplier.name}`);
+      continue;
+    }
+
+    await prisma.supplier.create({ data: supplier });
+    console.log(`Supplier dibuat: ${supplier.name}`);
+  }
+
+  for (const ingredient of ingredients) {
+    // Ensure-only: jangan reset stok bahan yang sudah ada. Perubahan stok
+    // nyata dilakukan lewat mutasi di /admin/inventory dan wajib bertahan.
+    const existing = await prisma.ingredient.findUnique({
+      where: { name: ingredient.name },
+      select: { id: true },
+    });
+    if (existing) {
+      console.log(`Bahan sudah ada: ${ingredient.name}`);
+      continue;
+    }
+
+    const supplier = await prisma.supplier.findUnique({
+      where: { name: ingredient.supplier },
+      select: { id: true },
+    });
+
+    await prisma.ingredient.create({
+      data: {
+        name: ingredient.name,
+        unit: ingredient.unit,
+        stock: ingredient.stock,
+        minStock: ingredient.minStock,
+        costPerUnit: ingredient.costPerUnit,
+        supplierId: supplier?.id ?? null,
+        movements: {
+          create: {
+            type: "in",
+            quantity: ingredient.stock,
+            stockBefore: 0,
+            stockAfter: ingredient.stock,
+            note: "Stok awal (seed)",
+          },
+        },
+      },
+    });
+    console.log(`Bahan dibuat: ${ingredient.name}`);
+  }
 }
 
 async function seedDemoOrders() {

@@ -12,7 +12,10 @@ export default async function EditProductPage({
   const { id } = await params;
 
   const [product, categories] = await Promise.all([
-    prisma.product.findUnique({ where: { id } }),
+    prisma.product.findUnique({
+      where: { id },
+      include: { _count: { select: { recipeItems: true } } },
+    }),
     prisma.category.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true },
@@ -24,6 +27,7 @@ export default async function EditProductPage({
   return (
     <ProductFormScreen
       categories={categories}
+      recipeCount={product._count.recipeItems}
       product={{
         id: product.id,
         name: product.name,

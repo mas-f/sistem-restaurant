@@ -60,6 +60,8 @@ export function MenuScreen({
   );
 
   const handleAdd = (p: MenuProduct, qty: number, note: string) => {
+    if (!p.available || qty < 1) return;
+
     addToCart({
       id: `${p.id}-${Date.now()}`,
       productId: p.id,

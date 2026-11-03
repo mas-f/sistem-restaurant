@@ -415,6 +415,116 @@ export const deleteProductAction = async (
   return {};
 };
 
+export interface RecipeLineInput {
+  ingredientId: string;
+  quantity: number;
+}
+
+export interface RecipeFormState {
+  error?: string;
+  success?: boolean;
+}
+
+const RECIPE_MAX_LINES = 40;
+
+/**
+ * Menyimpan komposisi bahan satu produk (replace-all). Setiap menu wajib
+ * punya minimal satu bahan agar pesanan bisa memotong stok secara akurat.
+ */
+export const saveProductRecipeAction = async (
+  productId: string,
+  items: RecipeLineInput[]
+): Promise<RecipeFormState> => {
+  if (!(await requireRole(["admin"]))) return { error: "Akses ditolak." };
+
+  if (typeof productId !== "string" || !productId.trim()) {
+    return { error: "Produk tidak ditemukan." };
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return { error: "Tambahkan minimal satu bahan untuk menu ini." };
+  }
+
+  if (items.length > RECIPE_MAX_LINES) {
+    return { error: `Maksimal ${RECIPE_MAX_LINES} bahan per menu.` };
+  }
+
+  const seen = new Set<string>();
+  const parsed: { ingredientId: string; quantity: Prisma.Decimal }[] = [];
+
+  for (const item of items) {
+    const ingredientId =
+      typeof item?.ingredientId === "string" ? item.ingredientId.trim() : "";
+    if (!ingredientId) return { error: "Ada baris bahan yang belum dipilih." };
+
+    if (seen.has(ingredientId)) {
+      return { error: "Bahan yang sama dipilih lebih dari sekali." };
+    }
+    seen.add(ingredientId);
+
+    const quantity = Number(item.quantity);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      return { error: "Jumlah bahan harus lebih dari 0." };
+    }
+    if (quantity > STOCK_MAX) {
+      return { error: "Jumlah bahan terlalu besar." };
+    }
+    if (Math.abs(quantity * 100 - Math.round(quantity * 100)) > 1e-6) {
+      return { error: "Jumlah bahan maksimal 2 angka desimal." };
+    }
+
+    parsed.push({
+      ingredientId,
+      quantity: new Prisma.Decimal(quantity.toFixed(2)),
+    });
+  }
+
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true },
+    });
+    if (!product) return { error: "Produk tidak ditemukan." };
+
+    const ingredients = await prisma.ingredient.findMany({
+      where: { id: { in: parsed.map((line) => line.ingredientId) } },
+      select: { id: true, name: true, isActive: true },
+    });
+
+    if (ingredients.length !== parsed.length) {
+      return { error: "Ada bahan yang sudah tidak terdaftar. Muat ulang halaman." };
+    }
+
+    const inactive = ingredients.find((ingredient) => !ingredient.isActive);
+    if (inactive) {
+      return {
+        error: `Bahan "${inactive.name}" nonaktif — aktifkan dulu di inventaris.`,
+      };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.recipeItem.deleteMany({ where: { productId } });
+      await tx.recipeItem.createMany({
+        data: parsed.map((line) => ({
+          productId,
+          ingredientId: line.ingredientId,
+          quantity: line.quantity,
+        })),
+      });
+    });
+  } catch (error) {
+    console.error("[action] saveProductRecipe gagal:", error);
+    return { error: "Gagal menyimpan resep. Coba lagi." };
+  }
+
+  revalidatePath("/admin/menu");
+  revalidatePath(`/admin/menu/${productId}/recipe`);
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin");
+
+  return { success: true };
+};
+
 export interface TableFormState {
   error?: string;
 }
@@ -676,6 +786,138 @@ function parseOrderItems(
 }
 
 /**
+ * Memotong stok bahan sesuai resep untuk satu pesanan.
+ * - Produk tanpa resep ditolak (setiap menu wajib punya komposisi bahan).
+ * - Stok kurang ditolak sebelum pesanan tersimpan.
+ * - Setiap pemotongan menulis StockMovement `out` dalam transaksi yang sama.
+ */
+async function deductRecipeStock(
+  tx: Prisma.TransactionClient,
+  orderCode: string,
+  ordered: { productId: string; productName: string; quantity: number }[],
+  createdById: string | null
+) {
+  const qtyByProduct = new Map<string, number>();
+  const nameByProduct = new Map<string, string>();
+
+  for (const item of ordered) {
+    qtyByProduct.set(
+      item.productId,
+      (qtyByProduct.get(item.productId) ?? 0) + item.quantity
+    );
+    nameByProduct.set(item.productId, item.productName);
+  }
+
+  const productIds = [...qtyByProduct.keys()];
+
+  const rows = await tx.recipeItem.findMany({
+    where: { productId: { in: productIds } },
+    select: {
+      productId: true,
+      quantity: true,
+      ingredient: {
+        select: {
+          id: true,
+          name: true,
+          unit: true,
+          stock: true,
+          isActive: true,
+        },
+      },
+    },
+  });
+
+  const productsWithRecipe = new Set<string>();
+  const requirements = new Map<
+    string,
+    {
+      name: string;
+      unit: string;
+      required: Prisma.Decimal;
+      stock: Prisma.Decimal;
+      isActive: boolean;
+    }
+  >();
+
+  for (const row of rows) {
+    productsWithRecipe.add(row.productId);
+
+    const factor = qtyByProduct.get(row.productId) ?? 0;
+    if (factor <= 0) continue;
+
+    const needed = new Prisma.Decimal(row.quantity).times(factor);
+    const existing = requirements.get(row.ingredient.id);
+
+    if (existing) {
+      existing.required = existing.required.plus(needed);
+    } else {
+      requirements.set(row.ingredient.id, {
+        name: row.ingredient.name,
+        unit: row.ingredient.unit,
+        required: needed,
+        stock: new Prisma.Decimal(row.ingredient.stock),
+        isActive: row.ingredient.isActive,
+      });
+    }
+  }
+
+  for (const productId of productIds) {
+    if (!productsWithRecipe.has(productId)) {
+      throw new OrderActionError(
+        `Menu "${nameByProduct.get(productId) ?? "ini"}" belum punya resep bahan. Hubungi staf.`
+      );
+    }
+  }
+
+  // Urut stabil supaya dua pesanan bersamaan mengambil lock dengan urutan sama.
+  const orderedRequirements = [...requirements.entries()].sort(([a], [b]) =>
+    a.localeCompare(b)
+  );
+
+  for (const [ingredientId, need] of orderedRequirements) {
+    if (!need.isActive) {
+      throw new OrderActionError(
+        `Bahan ${need.name} sedang dinonaktifkan. Hubungi staf.`
+      );
+    }
+
+    if (need.stock.lt(need.required)) {
+      throw new OrderActionError(
+        `Stok ${need.name} tidak cukup untuk pesanan ini (tersisa ${need.stock.toFixed(
+          2
+        )} ${need.unit}).`
+      );
+    }
+
+    const after = need.stock.minus(need.required);
+
+    // Optimistic guard: hanya potong bila stok masih sama dengan yang dibaca.
+    const updated = await tx.ingredient.updateMany({
+      where: { id: ingredientId, stock: need.stock },
+      data: { stock: after },
+    });
+
+    if (updated.count === 0) {
+      throw new OrderActionError(
+        "Stok berubah saat pesanan diproses. Kirim ulang pesanan."
+      );
+    }
+
+    await tx.stockMovement.create({
+      data: {
+        ingredientId,
+        type: "out",
+        quantity: need.required.negated(),
+        stockBefore: need.stock,
+        stockAfter: after,
+        note: `Pemakaian order ${orderCode}`,
+        createdById,
+      },
+    });
+  }
+}
+
+/**
  * Tamu mengirim pesanan dari keranjang. Harga dan subtotal selalu dihitung
  * ulang dari produk di database — input client hanya berisi productId,
  * quantity, dan catatan.
@@ -760,7 +1002,7 @@ export const createOrderAction = async (
         data: { status: "occupied" },
       });
 
-      return tx.order.create({
+      const created = await tx.order.create({
         data: {
           code,
           sessionId: session.id,
@@ -771,6 +1013,21 @@ export const createOrderAction = async (
         },
         select: { id: true, code: true },
       });
+
+      // Stok bahan dipotong dalam transaksi yang sama: pesanan tidak pernah
+      // tersimpan tanpa jejak pemakaian bahan.
+      await deductRecipeStock(
+        tx,
+        created.code,
+        items.map((item) => ({
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+        })),
+        null
+      );
+
+      return created;
     });
 
     revalidatePath("/staff/kitchen");
@@ -1319,12 +1576,16 @@ export const updateIngredientAction = async (
   const id = readFormId(formData);
   if (!id) return { error: "Bahan tidak ditemukan." };
 
-  let current: { id: string; unit: IngredientUnit } | null = null;
+  let current: {
+    id: string;
+    unit: IngredientUnit;
+    isActive: boolean;
+  } | null = null;
 
   try {
     current = await prisma.ingredient.findUnique({
       where: { id },
-      select: { id: true, unit: true },
+      select: { id: true, unit: true, isActive: true },
     });
   } catch (error) {
     console.error("[action] updateIngredient gagal:", error);
@@ -1354,13 +1615,33 @@ export const updateIngredientAction = async (
     // Satuan tidak boleh berubah setelah ada riwayat — angka lama akan
     // salah tafsir bila kg berubah menjadi liter.
     if (parsed.unit !== current.unit) {
-      const movementCount = await prisma.stockMovement.count({
-        where: { ingredientId: id },
-      });
+      const [movementCount, recipeCount] = await Promise.all([
+        prisma.stockMovement.count({ where: { ingredientId: id } }),
+        prisma.recipeItem.count({ where: { ingredientId: id } }),
+      ]);
+
+      if (recipeCount > 0) {
+        return {
+          error: `Satuan tidak bisa diubah karena bahan ini dipakai di ${recipeCount} resep menu.`,
+        };
+      }
+
       if (movementCount > 0) {
         return {
           error:
             "Satuan tidak bisa diubah karena bahan ini sudah punya riwayat stok.",
+        };
+      }
+    }
+
+    // Menonaktifkan bahan yang masih dipakai resep akan mematikan menu terkait.
+    if (current.isActive && !parsed.isActive) {
+      const recipeCount = await prisma.recipeItem.count({
+        where: { ingredientId: id },
+      });
+      if (recipeCount > 0) {
+        return {
+          error: `Bahan ini dipakai di ${recipeCount} resep menu — lepas dulu dari resep sebelum menonaktifkan.`,
         };
       }
     }
@@ -1400,6 +1681,17 @@ export const setIngredientActiveAction = async (
   if (!(await requireRole(["admin"]))) return { error: "Akses ditolak." };
 
   if (!ingredientId) return { error: "Bahan tidak ditemukan." };
+
+  if (!isActive) {
+    const recipeCount = await prisma.recipeItem.count({
+      where: { ingredientId },
+    });
+    if (recipeCount > 0) {
+      return {
+        error: `Bahan ini dipakai di ${recipeCount} resep menu — lepas dulu dari resep sebelum menonaktifkan.`,
+      };
+    }
+  }
 
   try {
     await prisma.ingredient.update({
@@ -1534,9 +1826,19 @@ export const deleteIngredientAction = async (
   try {
     const ingredient = await prisma.ingredient.findUnique({
       where: { id },
-      select: { name: true, _count: { select: { movements: true } } },
+      select: {
+        name: true,
+        _count: { select: { movements: true, recipes: true } },
+      },
     });
     if (!ingredient) return { error: "Bahan tidak ditemukan." };
+
+    // Resep menu tidak boleh menunjuk bahan yang hilang.
+    if (ingredient._count.recipes > 0) {
+      return {
+        error: `Bahan "${ingredient.name}" dipakai di ${ingredient._count.recipes} resep menu — lepas dulu dari resep sebelum menghapus.`,
+      };
+    }
 
     // Riwayat stok tidak boleh hilang. Bahan yang pernah dipakai cukup
     // dinonaktifkan agar laporan lama tetap utuh.

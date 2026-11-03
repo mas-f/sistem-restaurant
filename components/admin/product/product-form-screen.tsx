@@ -55,9 +55,11 @@ const DESCRIPTION_MAX = 400;
 export function ProductFormScreen({
   categories,
   product,
+  recipeCount = 0,
 }: {
   categories: CategoryOption[];
   product?: ProductFormData;
+  recipeCount?: number;
 }) {
   const [state, formAction, pending] = useActionState(
     product ? updateProductAction : createProductAction,
@@ -197,6 +199,30 @@ export function ProductFormScreen({
         {product ? <input type="hidden" name="id" value={product.id} /> : null}
         <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
         <input type="hidden" name="categoryId" value={categoryId} />
+
+        {product ? (
+          <Alert
+            className={
+              recipeCount === 0
+                ? "border-status-preparing-fg/25 bg-status-preparing-bg/60 px-3 py-2.5 text-xs text-status-preparing-fg"
+                : "px-3 py-2.5 text-xs"
+            }
+          >
+            <Info />
+            <AlertDescription className="text-xs font-medium">
+              {recipeCount === 0
+                ? "Menu ini belum punya resep bahan, jadi belum bisa dipesan tamu. "
+                : `Resep: ${recipeCount} bahan terdaftar. `}
+              <Link
+                href={`/admin/menu/${product.id}/recipe`}
+                className="font-bold underline underline-offset-2"
+              >
+                Atur resep bahan
+              </Link>
+              .
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         {state.error ? (
           <Alert variant="destructive" className="px-3 py-2.5 text-xs">

@@ -211,4 +211,6 @@ export interface MenuProduct {
   imageUrl: string;
   categoryId: string;
   station: MenuStation;
+  available: boolean;
+  portions: number;
 }

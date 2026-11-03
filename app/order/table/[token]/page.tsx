@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { MenuScreen } from "@/components/customer/menu-screen";
 import { toMenuProduct } from "@/lib/menu";
 import { prisma } from "@/lib/prisma";
+import { getProductAvailabilityMap } from "@/lib/recipe-queries";
 import { resolveTableByToken } from "@/lib/resolve-table";
 
 // Dinamis penuh (tanpa shell PPR): connection() + resolve token di level page,
@@ -43,6 +44,11 @@ export default async function TableOrderPage({
     }),
   ]);
 
+  // Ketersediaan menu diturunkan dari resep + stok bahan (bukan flag manual).
+  const availability = await getProductAvailabilityMap(
+    products.map((product) => product.id)
+  );
+
   return (
     <MenuScreen
       tableCode={table.code}
@@ -50,7 +56,12 @@ export default async function TableOrderPage({
       seats={table.seats}
       guestLabel="Pesan langsung dari meja kamu — tanpa antre"
       categories={categories}
-      products={products.map(toMenuProduct)}
+      products={products.map((product) =>
+        toMenuProduct(
+          product,
+          availability.get(product.id) ?? { state: "NO_RECIPE" }
+        )
+      )}
     />
   );
 }

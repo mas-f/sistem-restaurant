@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
+  ChefHat,
   ClipboardCheck,
   Package,
   Pencil,
@@ -45,6 +46,7 @@ export interface IngredientDetailData {
   isActive: boolean;
   supplierName: string | null;
   createdAt: string;
+  usedInProducts: { id: string; name: string }[];
   movements: StockMovementRow[];
 }
 
@@ -217,6 +219,44 @@ export function InventoryDetailScreen({
               ? "Stok di bawah ambang minimum — segera lakukan restock."
               : "Stok berada di atas ambang minimum."}
         </p>
+      </section>
+
+      <section
+        aria-label="Pemakaian bahan di menu"
+        className="rounded-xl border border-border bg-card p-4"
+      >
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-heading text-sm font-extrabold">Dipakai di Menu</h2>
+          <span className="tnum text-xs text-muted-foreground">
+            {ingredient.usedInProducts.length} resep
+          </span>
+        </div>
+
+        {ingredient.usedInProducts.length > 0 ? (
+          <>
+            <ul className="flex flex-wrap gap-1.5">
+              {ingredient.usedInProducts.map((product) => (
+                <li key={product.id}>
+                  <Link
+                    href={`/admin/menu/${product.id}/recipe`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/50 px-2.5 py-1 text-xs font-semibold transition hover:border-primary/40 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    <ChefHat className="size-3" aria-hidden />
+                    {product.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Bahan ini tidak bisa dinonaktifkan atau dihapus selama masih
+              dipakai resep di atas.
+            </p>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Belum dipakai di resep menu mana pun.
+          </p>
+        )}
       </section>
 
       <section aria-label="Riwayat pergerakan stok" className="space-y-3">

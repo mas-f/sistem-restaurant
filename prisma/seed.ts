@@ -258,7 +258,131 @@ async function main() {
   }
 
   await seedInventory();
+  await seedRecipes();
   await seedDemoOrders();
+}
+
+// Resep contoh supaya alur demo tetap bisa memesan. Hanya mengisi produk yang
+// belum punya resep; komposisi asli tetap ditentukan admin lewat UI.
+const recipeRules: {
+  keywords: string[];
+  items: { ingredient: string; quantity: string }[];
+}[] = [
+  {
+    keywords: ["ayam"],
+    items: [
+      { ingredient: "Daging Ayam Fillet", quantity: "0.15" },
+      { ingredient: "Bumbu Sambal Bawang", quantity: "0.02" },
+      { ingredient: "Minyak Goreng", quantity: "0.02" },
+    ],
+  },
+  {
+    keywords: ["sapi", "blackpepper", "beef", "wagyu"],
+    items: [
+      { ingredient: "Sapi Blackpepper", quantity: "0.12" },
+      { ingredient: "Bumbu Sambal Bawang", quantity: "0.02" },
+      { ingredient: "Minyak Goreng", quantity: "0.02" },
+    ],
+  },
+  {
+    keywords: ["udang", "seafood"],
+    items: [
+      { ingredient: "Udang Segar", quantity: "0.1" },
+      { ingredient: "Bumbu Sambal Bawang", quantity: "0.02" },
+    ],
+  },
+  {
+    keywords: ["nasi", "beras", "rice"],
+    items: [
+      { ingredient: "Beras Pandan Wangi", quantity: "0.1" },
+      { ingredient: "Minyak Goreng", quantity: "0.01" },
+    ],
+  },
+  {
+    keywords: ["mie", "bakmi", "soto"],
+    items: [
+      { ingredient: "Beras Pandan Wangi", quantity: "0.08" },
+      { ingredient: "Telur Ayam", quantity: "0.05" },
+      { ingredient: "Minyak Goreng", quantity: "0.01" },
+    ],
+  },
+  {
+    keywords: ["teh", "peach"],
+    items: [{ ingredient: "Daun Teh Peach Blossom", quantity: "0.1" }],
+  },
+  {
+    keywords: ["kopi", "aren"],
+    items: [{ ingredient: "Gula Aren Cair", quantity: "0.02" }],
+  },
+  {
+    keywords: ["telur", "dimsum"],
+    items: [
+      { ingredient: "Telur Ayam", quantity: "0.05" },
+      { ingredient: "Daging Ayam Fillet", quantity: "0.08" },
+    ],
+  },
+  {
+    keywords: ["kentang", "tahu", "pisang", "roti", "goreng"],
+    items: [{ ingredient: "Minyak Goreng", quantity: "0.05" }],
+  },
+];
+
+async function seedRecipes() {
+  const products = await prisma.product.findMany({
+    select: {
+      id: true,
+      name: true,
+      _count: { select: { recipeItems: true } },
+    },
+  });
+
+  if (products.length === 0) {
+    console.log("Resep dilewati: belum ada produk di database.");
+    return;
+  }
+
+  const ingredients = await prisma.ingredient.findMany({
+    select: { id: true, name: true },
+  });
+  const ingredientIdByName = new Map(
+    ingredients.map((ingredient) => [ingredient.name, ingredient.id])
+  );
+
+  for (const product of products) {
+    if (product._count.recipeItems > 0) continue;
+
+    const name = product.name.toLowerCase();
+    const rule = recipeRules.find((candidate) =>
+      candidate.keywords.some((keyword) => name.includes(keyword))
+    );
+
+    if (!rule) {
+      console.log(`Resep dilewati (tanpa pola bahan): ${product.name}`);
+      continue;
+    }
+
+    const lines = rule.items
+      .map((item) => ({
+        ingredientId: ingredientIdByName.get(item.ingredient),
+        quantity: item.quantity,
+      }))
+      .filter(
+        (line): line is { ingredientId: string; quantity: string } =>
+          Boolean(line.ingredientId)
+      );
+
+    if (lines.length === 0) continue;
+
+    await prisma.recipeItem.createMany({
+      data: lines.map((line) => ({
+        productId: product.id,
+        ingredientId: line.ingredientId,
+        quantity: line.quantity,
+      })),
+    });
+
+    console.log(`Resep dibuat: ${product.name} (${lines.length} bahan)`);
+  }
 }
 
 async function seedInventory() {

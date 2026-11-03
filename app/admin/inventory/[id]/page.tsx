@@ -29,6 +29,10 @@ export default async function IngredientDetailPage({
       isActive: true,
       createdAt: true,
       supplier: { select: { name: true } },
+      recipes: {
+        select: { product: { select: { id: true, name: true } } },
+        orderBy: { product: { name: "asc" } },
+      },
       movements: {
         orderBy: { createdAt: "desc" },
         take: MOVEMENT_LIMIT,
@@ -76,6 +80,10 @@ export default async function IngredientDetailPage({
         isActive: ingredient.isActive,
         supplierName: ingredient.supplier?.name ?? null,
         createdAt: ingredient.createdAt.toISOString(),
+        usedInProducts: ingredient.recipes.map((row) => ({
+          id: row.product.id,
+          name: row.product.name,
+        })),
         movements,
       }}
     />

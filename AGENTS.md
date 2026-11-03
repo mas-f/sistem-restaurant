@@ -34,10 +34,13 @@ screen.
   revenue/payments, and best sellers from `lib/orders.ts`). Inventory is live:
   `Supplier`, `Ingredient`, and `StockMovement` back `/admin/inventory`
   (KPI, status, stock in/out/adjustment, per-ingredient history) and
-  `/admin/suppliers` (CRUD), and the dashboard stock warnings read the DB.
+  `/admin/suppliers` (CRUD), and the dashboard stock warnings read the DB. Recipes
+  are live too: `RecipeItem` links every product to its ingredients at
+  `/admin/menu/[id]/recipe`, stock is deducted when a customer order is created
+  (`createOrderAction`), and product availability on the guest menu is derived from
+  recipe stock.
 - **Still mock:** cart UI state and toast store (`lib/store.tsx`), restaurant metadata in
-  `lib/mock-data.ts`, and the admin staff/shifts/settings screens. Product
-  availability flags are still mock (no column in `Product`). Modifiers are not
+  `lib/mock-data.ts`, and the admin staff/shifts/settings screens. Modifiers are not
   modeled yet.
 
 **Scope:** the prototype-only constraint (PRD §3 Non-Goals) is lifted for this phase:
@@ -101,6 +104,17 @@ There is no test framework, formatter config, or CI in this repo. Verify with
   `lib/inventory.ts`; `lib/inventory.ts` stays free of `prisma` so client components can
   import it (DB helpers live in `lib/inventory-queries.ts`). Ingredients and suppliers are
   archived (`isActive=false`) when they have history; hard deletes are blocked.
+- **Recipes drive stock and availability:** `RecipeItem` (unique per product + ingredient)
+  stores the quantity of one ingredient per one portion. Every product must have at least
+  one ingredient to be orderable. `createOrderAction` aggregates recipe quantities × order
+  quantity, rejects the order when stock is insufficient or a recipe is missing, deducts
+  stock with the same optimistic `updateMany({ where: { stock: before } })` guard, and
+  writes a `StockMovement` (`out`, note `Pemakaian order <code>`) inside the order
+  transaction. Guest-menu availability (`MenuProduct.available` / `portions`) comes from
+  `getProductAvailabilityMap()` in `lib/recipe-queries.ts`; pure helpers live in
+  `lib/recipe.ts` and must stay free of `prisma`. Ingredients used by a recipe cannot be
+  hard-deleted, deactivated, or have their unit changed. Adding a cancel/refund flow
+  requires restoring stock with an `in` movement referencing the order code.
 - **Auth:** `auth()` from `@/auth`; role-based route guard runs in `proxy.ts`
   (`/admin` → admin; `/staff/kitchen`, `/staff/cashier`, `/staff/orders` per role). Roles
   and role landing paths live in `lib/auth-types.ts`.
@@ -147,3 +161,13 @@ There is no test framework, formatter config, or CI in this repo. Verify with
   idempotent: existing dining tables are never modified (printed QR tokens stay valid),
   and demo sessions/orders/payments are only created when `TableSession` is empty.
   Missing users/tables are created; existing users are upserted.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

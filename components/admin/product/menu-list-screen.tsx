@@ -4,9 +4,11 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, ImageOff, Pencil, Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChefHat, ImageOff, Pencil, Plus, Search, TriangleAlert } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { ProductDeleteButton } from "@/components/admin/product/product-delete-button";
+import { ProductAvailabilityBadge } from "@/components/admin/product/product-availability-badge";
+import type { ProductAvailability } from "@/lib/recipe";
 import { cn, rupiah } from "@/lib/utils";
 
 export interface MenuProductRow {
@@ -16,11 +18,14 @@ export interface MenuProductRow {
   price: number;
   imageUrl: string;
   categoryName: string;
+  recipeCount: number;
+  availability: ProductAvailability;
 }
 
 export interface MenuListScreenProps {
   products: MenuProductRow[];
   categories: { id: string; name: string }[];
+  withoutRecipeCount: number;
   q: string;
   cat: string;
   page: number;
@@ -70,6 +75,7 @@ const ProductThumbnail = ({ src, name }: { src: string; name: string }) => {
 export function MenuListScreen({
   products,
   categories,
+  withoutRecipeCount,
   q,
   cat,
   page,
@@ -147,6 +153,19 @@ export function MenuListScreen({
         </Link>
       </div>
 
+      {withoutRecipeCount > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-status-preparing-fg/25 bg-status-preparing-bg/60 px-4 py-3 text-sm text-status-preparing-fg">
+          <TriangleAlert className="size-4 shrink-0" aria-hidden />
+          <p className="font-semibold">
+            {withoutRecipeCount} menu belum punya resep bahan — menu tersebut
+            tidak bisa dipesan tamu.
+          </p>
+          <span className="text-xs font-medium">
+            Buka menu → tombol resep untuk melengkapinya.
+          </span>
+        </div>
+      ) : null}
+
       {/* Filter: cari nama + pill kategori dari database */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full sm:w-64">
@@ -196,8 +215,8 @@ export function MenuListScreen({
                 <th className="px-4 py-2.5">Nama</th>
                 <th className="px-4 py-2.5">Kategori</th>
                 <th className="px-4 py-2.5 text-right">Harga</th>
-                {/* Status — dikomentari: field availability/popular belum ada di schema Product.
-                <th className="px-4 py-2.5">Status</th> */}
+                <th className="px-4 py-2.5">Resep</th>
+                <th className="px-4 py-2.5">Ketersediaan</th>
                 <th className="px-4 py-2.5 text-right">Aksi</th>
               </tr>
             </thead>
@@ -227,10 +246,40 @@ export function MenuListScreen({
                   <td className="tnum px-4 py-3 text-right font-bold">
                     {rupiah(product.price)}
                   </td>
-                  {/* Status — dikomentari: menunggu field availability di schema Product.
-                  <td className="px-4 py-3">…</td> */}
+                  <td className="px-4 py-3">
+                    {product.recipeCount > 0 ? (
+                      <Link
+                        href={`/admin/menu/${product.id}/recipe`}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-primary hover:underline"
+                      >
+                        <ChefHat className="size-3.5" aria-hidden />
+                        {product.recipeCount} bahan
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/admin/menu/${product.id}/recipe`}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-status-preparing-bg px-2 py-0.5 text-xs font-bold text-status-preparing-fg hover:underline"
+                      >
+                        <TriangleAlert className="size-3" aria-hidden />
+                        Belum ada resep
+                      </Link>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <ProductAvailabilityBadge
+                      availability={product.availability}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
+                      <Link
+                        href={`/admin/menu/${product.id}/recipe`}
+                        aria-label={`Atur resep ${product.name}`}
+                        title={`Atur resep ${product.name}`}
+                        className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                      >
+                        <ChefHat className="size-4" aria-hidden />
+                      </Link>
                       <Link
                         href={`/admin/menu/${product.id}/edit`}
                         aria-label={`Edit ${product.name}`}

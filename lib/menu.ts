@@ -1,4 +1,5 @@
 import type { MenuProduct, MenuStation } from "@/lib/types";
+import type { ProductAvailability } from "@/lib/recipe";
 
 /** Tab sintetis "Semua" — tidak pernah bertabrakan dengan id UUID dari DB. */
 export const ALL_CATEGORY_ID = "all";
@@ -43,7 +44,10 @@ export function stationForCategory(category: {
 }
 
 /** Baris Prisma → props serializable untuk komponen menu tamu. */
-export function toMenuProduct(row: MenuProductRow): MenuProduct {
+export function toMenuProduct(
+  row: MenuProductRow,
+  availability: ProductAvailability = { state: "NO_RECIPE" }
+): MenuProduct {
   return {
     id: row.id,
     name: row.name,
@@ -52,5 +56,8 @@ export function toMenuProduct(row: MenuProductRow): MenuProduct {
     imageUrl: row.imageUrl,
     categoryId: row.categoryId,
     station: stationForCategory(row.category),
+    available: availability.state === "AVAILABLE",
+    portions:
+      availability.state === "AVAILABLE" ? availability.portions : 0,
   };
 }

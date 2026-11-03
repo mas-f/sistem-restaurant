@@ -6,7 +6,6 @@ import type {
   Branch,
   Category,
   DiningTable,
-  Ingredient,
   Modifier,
   ModifierGroup,
   Order,
@@ -15,7 +14,6 @@ import type {
   Restaurant,
   Shift,
   Staff,
-  Supplier,
   TableSession,
 } from "./types";
 
@@ -251,27 +249,6 @@ export const payments: Payment[] = Array.from({ length: 15 }, (_, i) => {
     paidAt: minsAgo((15 - i) * 8 + 2),
   };
 });
-
-export const suppliers: Supplier[] = [
-  { id: "sup-1", name: "Segar Tani Sayur", contact: "Pak Handoko", phone: "0812-1111-2222" },
-  { id: "sup-2", name: "Mitra Daging Nusantara", contact: "Ibu Ratna", phone: "0813-3333-4444" },
-  { id: "sup-3", name: "Seafood Bahari Jaya", contact: "Pak Yudi", phone: "0821-5555-6666" },
-  { id: "sup-4", name: "Bumbu Dapur Prima", contact: "Siti Aminah", phone: "0857-7777-8888" },
-  { id: "sup-5", name: "Distro Minuman Dingin", contact: "Andi Wijaya", phone: "0852-9999-0000" },
-];
-
-export const ingredients: Ingredient[] = [
-  { id: "ing-1", name: "Daging Ayam Fillet", unit: "kg", stock: 4.2, minStock: 5, supplierId: "sup-2" },
-  { id: "ing-2", name: "Bumbu Sambal Bawang", unit: "kg", stock: 1.5, minStock: 3, supplierId: "sup-4" },
-  { id: "ing-3", name: "Beras Pandan Wangi", unit: "kg", stock: 18, minStock: 10, supplierId: "sup-1" },
-  { id: "ing-4", name: "Daun Teh Peach Blossom", unit: "pack", stock: 12, minStock: 4, supplierId: "sup-5" },
-  { id: "ing-5", name: "Cabai Rawit Merah", unit: "kg", stock: 2.4, minStock: 3, supplierId: "sup-1" },
-  { id: "ing-6", name: "Sapi Blackpepper", unit: "kg", stock: 6.8, minStock: 4, supplierId: "sup-2" },
-  { id: "ing-7", name: "Udang Segar", unit: "kg", stock: 3.5, minStock: 2, supplierId: "sup-3" },
-  { id: "ing-8", name: "Telur Ayam", unit: "kg", stock: 9, minStock: 6, supplierId: "sup-1" },
-  { id: "ing-9", name: "Gula Aren Cair", unit: "liter", stock: 5.5, minStock: 3, supplierId: "sup-5" },
-  { id: "ing-10", name: "Minyak Goreng", unit: "liter", stock: 11, minStock: 8, supplierId: "sup-4" },
-];
 
 export const staff: Staff[] = [
   { id: "stf-1", name: "Rian Pratama", role: "KASIR", shift: "Siang", active: true },

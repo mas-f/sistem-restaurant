@@ -1,4 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import {
+  ORDER_QUERY_MAX,
+  ORDER_STATUS_TO_DB,
+  type DbOrderStatus,
+  type OrderStatusFilter,
+} from "@/lib/order-filters";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import type {
   BillStatus,
   DiningTable,
@@ -16,13 +23,6 @@ import type {
 // Enum database lowercase → tipe UI uppercase (PRD §26).
 type DbTableStatus = "available" | "occupied" | "waiting_payment" | "reserved" | "cleaning";
 type DbBillStatus = "not_requested" | "requested" | "processing" | "paid";
-type DbOrderStatus =
-  | "pending"
-  | "confirmed"
-  | "preparing"
-  | "ready"
-  | "completed"
-  | "cancelled";
 type DbKitchenStatus = "new" | "accepted" | "preparing" | "ready";
 type DbPaymentMethod = "cash" | "qris";
 type DbPaymentStatus = "pending" | "paid" | "failed" | "refunded";
@@ -200,7 +200,7 @@ export function toUiPayment(row: PaymentRow): PaymentView {
   };
 }
 
-/** Order untuk halaman admin/staff, terbaru dulu. */
+/** Order untuk halaman staff, terbaru dulu (tanpa pagination). */
 export async function getOrdersForScreen(take = 200): Promise<Order[]> {
   const rows = await prisma.order.findMany({
     orderBy: { createdAt: "desc" },
@@ -212,6 +212,80 @@ export async function getOrdersForScreen(take = 200): Promise<Order[]> {
   });
 
   return rows.map(toUiOrder);
+}
+
+export interface OrdersPageParams {
+  q?: string;
+  status?: OrderStatusFilter;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface OrdersPageResult {
+  orders: Order[];
+  total: number;
+  page: number;
+  totalPages: number;
+  showingFrom: number;
+  showingTo: number;
+}
+
+/**
+ * Satu halaman daftar order untuk admin: filter status + pencarian kode
+ * order/meja dijalankan di database, bukan di client, supaya pagination
+ * selalu mencakup seluruh data (bukan hanya 200 order terbaru).
+ */
+export async function getOrdersPage({
+  q = "",
+  status = "ALL",
+  page = 1,
+  pageSize = 10,
+}: OrdersPageParams = {}): Promise<OrdersPageResult> {
+  const query = q.trim().slice(0, ORDER_QUERY_MAX);
+  const safePageSize = Math.max(1, Math.trunc(pageSize));
+
+  const where: Prisma.OrderWhereInput = {
+    AND: [
+      status === "ALL" ? {} : { status: ORDER_STATUS_TO_DB[status] },
+      query
+        ? {
+            OR: [
+              { code: { contains: query, mode: "insensitive" } },
+              { tableCode: { contains: query, mode: "insensitive" } },
+            ],
+          }
+        : {},
+    ],
+  };
+
+  const total = await prisma.order.count({ where });
+  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+  const currentPage = Math.min(
+    Math.max(1, Math.trunc(page) || 1),
+    totalPages
+  );
+
+  const rows = await prisma.order.findMany({
+    where,
+    // Tie-breaker `id` menjaga urutan stabil saat `createdAt` kembar, supaya
+    // tidak ada baris yang terlewat/dobel antar halaman.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: (currentPage - 1) * safePageSize,
+    take: safePageSize,
+    include: {
+      items: { orderBy: { id: "asc" } },
+      session: { include: { table: { select: { sessionToken: true } } } },
+    },
+  });
+
+  return {
+    orders: rows.map(toUiOrder),
+    total,
+    page: currentPage,
+    totalPages,
+    showingFrom: total === 0 ? 0 : (currentPage - 1) * safePageSize + 1,
+    showingTo: Math.min(currentPage * safePageSize, total),
+  };
 }
 
 /** Order aktif untuk Kitchen Display, terlama dulu agar antrean terlihat. */

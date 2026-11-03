@@ -1,4 +1,8 @@
 import { MenuListScreen } from "@/components/admin/product/menu-list-screen";
+import {
+  countProductsWithoutRecipe,
+  getProductAvailabilityMap,
+} from "@/lib/recipe-queries";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
@@ -62,8 +66,15 @@ export default async function Page({
       price: true,
       imageUrl: true,
       category: { select: { name: true } },
+      _count: { select: { recipeItems: true } },
     },
   });
+
+  // Ketersediaan diturunkan dari resep + stok bahan, bukan kolom tersendiri.
+  const [availability, withoutRecipeCount] = await Promise.all([
+    getProductAvailabilityMap(products.map((product) => product.id)),
+    countProductsWithoutRecipe(),
+  ]);
 
   const showingFrom = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const showingTo = Math.min(page * PAGE_SIZE, total);
@@ -77,7 +88,10 @@ export default async function Page({
         price: product.price,
         imageUrl: product.imageUrl,
         categoryName: product.category.name,
+        recipeCount: product._count.recipeItems,
+        availability: availability.get(product.id) ?? { state: "NO_RECIPE" },
       }))}
+      withoutRecipeCount={withoutRecipeCount}
       categories={categories}
       q={q}
       cat={cat}

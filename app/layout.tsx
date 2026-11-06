@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <StoreProvider>
           {children}
-          <Toaster />
+          {/* Toaster membaca usePathname(); Suspense menjaga prerender PPR
+              tetap jalan tanpa memblokir route (lihat cacheComponents). */}
+          <Suspense fallback={null}>
+            <Toaster />
+          </Suspense>
         </StoreProvider>
       </body>
     </html>

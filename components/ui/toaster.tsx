@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { CheckCircle2, AlertTriangle, XCircle, Info, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -19,21 +20,33 @@ const tones = {
 };
 
 export function Toaster() {
+  const pathname = usePathname();
   const { toasts, dismissToast } = useStore();
-  if (toasts.length === 0) return null;
+
+  // Alur tamu (/order/*) punya CTA fixed di bawah layar — tombol keranjang dan
+  // "Pesan Lagi". Toast ditaruh di atas agar tidak menutupinya. Layar staf dan
+  // admin tetap di bawah karena header mereka yang sticky berisi kontrol.
+  const atTop = pathname.startsWith("/order");
+  const visible = toasts.slice(-3);
+
+  if (visible.length === 0) return null;
   return (
     <div
       aria-live="polite"
-      className="fixed bottom-4 left-1/2 z-[100] flex w-[min(24rem,calc(100vw-2rem))] -translate-x-1/2 flex-col gap-2 sm:left-auto sm:right-4 sm:translate-x-0"
+      className={cn(
+        "pointer-events-none fixed left-1/2 z-[100] flex w-[min(24rem,calc(100vw-2rem))] -translate-x-1/2 flex-col gap-2 sm:left-auto sm:right-4 sm:translate-x-0",
+        atTop ? "top-[calc(0.75rem+env(safe-area-inset-top))]" : "bottom-4"
+      )}
     >
-      {toasts.map((t) => {
+      {visible.map((t) => {
         const Icon = icons[t.tone];
         return (
           <div
             key={t.id}
             role="status"
             className={cn(
-              "animate-rise flex items-start gap-3 rounded-lg border p-3 shadow-lg",
+              "pointer-events-auto flex items-start gap-3 rounded-lg border p-3 shadow-lg",
+              atTop ? "animate-drop" : "animate-rise",
               tones[t.tone]
             )}
           >

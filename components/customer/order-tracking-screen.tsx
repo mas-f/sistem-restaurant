@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
+  Banknote,
   CheckCircle2,
   ChefHat,
   Clock,
   Flame,
   PackageCheck,
+  QrCode,
   ReceiptText,
+  Wallet,
 } from "lucide-react";
 import { rupiah } from "@/lib/format";
 import { BrandLogo } from "@/components/brand-logo";
@@ -242,6 +245,75 @@ export function OrderTrackingScreen({
             </span>
           </div>
         </section>
+
+        {/* Panduan pembayaran */}
+        {!cancelled &&
+          (order.paid ? (
+            <section
+              aria-label="Informasi pembayaran"
+              className="mt-6 flex items-start gap-3 rounded-xl border border-status-available/30 bg-status-available-bg px-4 py-3"
+            >
+              <CheckCircle2
+                className="mt-0.5 size-4 shrink-0 text-status-available-fg"
+                aria-hidden
+              />
+              <div>
+                <p className="text-sm font-bold text-status-available-fg">
+                  Pembayaran selesai
+                </p>
+                <p className="mt-0.5 text-xs text-status-available-fg/80">
+                  Terima kasih atas kunjungan anda.
+                </p>
+              </div>
+            </section>
+          ) : (
+            <section
+              aria-label="Informasi pembayaran"
+              className="mt-6 rounded-xl border border-border bg-card p-4"
+            >
+              <h2 className="flex items-center gap-2 font-heading text-sm font-bold">
+                <Wallet
+                  className="size-4 text-status-waiting-fg"
+                  aria-hidden
+                />
+                Bayar di kasir
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Pembayaran dilakukan langsung di kasir.
+              </p>
+              <ol className="mt-3 space-y-2 text-sm">
+                <li className="flex gap-2">
+                  <span className="tnum flex size-5 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-extrabold text-accent-foreground">
+                    1
+                  </span>
+                  <span>Selesai makan? Datangi kasir atau panggil waiter.</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="tnum flex size-5 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-extrabold text-accent-foreground">
+                    2
+                  </span>
+                  <span>
+                    Sebutkan{" "}
+                    <strong className="font-bold">Meja {order.tableCode}</strong>{" "}.
+                  </span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="tnum flex size-5 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-extrabold text-accent-foreground">
+                    3
+                  </span>
+                  <span>Bayar dengan tunai atau QRIS.</span>
+                </li>
+              </ol>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-semibold">
+                  <Banknote className="size-3.5" aria-hidden /> Tunai
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-semibold">
+                  <QrCode className="size-3.5" aria-hidden /> QRIS
+                </span>
+              </div>
+            </section>
+          ))}
       </main>
 
       {/* Bottom bar */}

@@ -123,6 +123,8 @@ export interface Order {
   status: OrderStatus;
   kitchenStatus: KitchenStatus;
   note: string;
+  /** True bila order sudah dilunasi di kasir. */
+  paid?: boolean;
   subtotal?: number;
   total?: number;
 }

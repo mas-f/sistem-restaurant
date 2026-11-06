@@ -87,6 +87,7 @@ export type OrderRow = {
   subtotal: number;
   total: number;
   note: string;
+  paymentId?: string | null;
   createdAt: Date;
   items: Array<{
     id: string;
@@ -161,6 +162,7 @@ export function toUiOrder(row: OrderRow): Order {
     status: ORDER_STATUS_TO_UI[row.status],
     kitchenStatus: KITCHEN_STATUS_TO_UI[row.kitchenStatus],
     note: row.note,
+    paid: row.paymentId != null,
     subtotal: row.subtotal,
     total: row.total,
   };

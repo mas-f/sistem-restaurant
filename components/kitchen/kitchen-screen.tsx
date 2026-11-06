@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { BrandLogo } from "@/components/brand-logo";
+import { ProductImage } from "@/components/customer/product-image";
 import { SignOutButton } from "@/components/sign-out-button";
 import { restaurant } from "@/lib/mock-data";
 import { rupiah } from "@/lib/format";
@@ -101,9 +102,14 @@ function OrderCard({
       <ul className="divide-y divide-border px-3">
         {order.items.map((it) => (
           <li key={it.id} className="flex items-start gap-2 py-2.5">
-            <span className="tnum flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-extrabold text-primary">
-              {it.quantity}
-            </span>
+            <div className="relative size-10 shrink-0">
+              <div className="size-full overflow-hidden rounded-md bg-muted">
+                <ProductImage src={it.imageUrl ?? ""} alt="" sizes="40px" />
+              </div>
+              <span className="tnum absolute -right-1.5 -bottom-1.5 flex size-5 items-center justify-center rounded-full border border-border bg-card text-[10px] font-extrabold">
+                {it.quantity}
+              </span>
+            </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm leading-snug font-semibold">
                 {it.productName}

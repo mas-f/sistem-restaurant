@@ -298,7 +298,10 @@ export async function getKitchenOrders(): Promise<Order[]> {
     orderBy: { createdAt: "asc" },
     take: 200,
     include: {
-      items: { orderBy: { id: "asc" } },
+      items: {
+        orderBy: { id: "asc" },
+        include: { product: { select: { imageUrl: true } } },
+      },
       session: { include: { table: { select: { sessionToken: true } } } },
     },
   });

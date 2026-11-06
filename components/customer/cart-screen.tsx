@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ProductImage } from "@/components/customer/product-image";
 import {
   Dialog,
   DialogContent,
@@ -120,6 +121,13 @@ export function CartScreen({
                   style={{ animationDelay: `${Math.min(idx, 5) * 60}ms` }}
                 >
                   <div className="flex items-start gap-3">
+                    <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+                      <ProductImage
+                        src={it.imageUrl ?? ""}
+                        alt=""
+                        sizes="56px"
+                      />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-heading text-sm font-bold">
                         {it.productName}
@@ -129,15 +137,29 @@ export function CartScreen({
                           {it.modifierNames.join(" · ")}
                         </p>
                       )}
-                      {it.note && (
+                      {it.note ? (
                         <p className="mt-0.5 text-xs text-primary italic">
                           “{it.note}”
                         </p>
+                      ) : (
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Tanpa catatan
+                        </p>
                       )}
-                      <p className="tnum mt-1 text-sm font-extrabold text-primary">
-                        {rupiah((it.unitPrice + it.modifierDelta) * it.quantity)}
-                      </p>
                     </div>
+                    <button
+                      onClick={() => removeItem(it.id)}
+                      aria-label={`Hapus ${it.productName}`}
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-status-error-bg hover:text-status-error-fg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none cursor-pointer"
+                    >
+                      <Trash2 className="size-4" aria-hidden />
+                    </button>
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between gap-3 border-t border-border pt-2">
+                    <p className="tnum text-sm font-extrabold text-primary">
+                      {rupiah((it.unitPrice + it.modifierDelta) * it.quantity)}
+                    </p>
                     <div className="flex items-center gap-1 rounded-full border border-border bg-background">
                       <button
                         onClick={() => updateQty(it.id, it.quantity - 1)}
@@ -157,13 +179,6 @@ export function CartScreen({
                         <Plus className="size-3.5" aria-hidden />
                       </button>
                     </div>
-                    <button
-                      onClick={() => removeItem(it.id)}
-                      aria-label={`Hapus ${it.productName}`}
-                      className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-status-error-bg hover:text-status-error-fg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none  cursor-pointer"
-                    >
-                      <Trash2 className="size-4" aria-hidden />
-                    </button>
                   </div>
                 </li>
               ))}

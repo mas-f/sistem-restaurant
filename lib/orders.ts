@@ -96,6 +96,8 @@ export type OrderRow = {
     unitPrice: number;
     station: DbStation;
     note: string;
+    /** Ikut hanya bila query menyertakan relasi produk (mis. halaman lacak). */
+    product?: { imageUrl: string } | null;
   }>;
   session?: {
     id: string;
@@ -153,6 +155,7 @@ export function toUiOrder(row: OrderRow): Order {
       modifierDelta: 0,
       note: item.note,
       station: STATION_TO_UI[item.station],
+      imageUrl: item.product?.imageUrl,
     })),
     createdAt: row.createdAt.toISOString(),
     status: ORDER_STATUS_TO_UI[row.status],

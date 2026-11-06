@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { rupiah } from "@/lib/format";
 import { BrandLogo } from "@/components/brand-logo";
+import { ProductImage } from "@/components/customer/product-image";
 import type { Order, TrackingStep } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -200,9 +201,18 @@ export function OrderTrackingScreen({
           <ul className="mt-3 divide-y divide-border">
             {order.items.map((item) => (
               <li key={item.id} className="flex items-start gap-3 py-2.5">
-                <span className="tnum flex size-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-extrabold text-accent-foreground">
-                  {item.quantity}
-                </span>
+                <div className="relative size-11 shrink-0">
+                  <div className="size-full overflow-hidden rounded-lg bg-muted">
+                    <ProductImage
+                      src={item.imageUrl ?? ""}
+                      alt=""
+                      sizes="44px"
+                    />
+                  </div>
+                  <span className="tnum absolute -right-1.5 -bottom-1.5 flex size-5 items-center justify-center rounded-full border border-border bg-card text-[10px] font-extrabold">
+                    {item.quantity}
+                  </span>
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{item.productName}</p>
                   {item.modifierNames.length > 0 && (
@@ -210,8 +220,12 @@ export function OrderTrackingScreen({
                       {item.modifierNames.join(" · ")}
                     </p>
                   )}
-                  {item.note && (
+                  {item.note ? (
                     <p className="text-xs text-primary italic">“{item.note}”</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Tanpa catatan
+                    </p>
                   )}
                 </div>
                 <span className="tnum text-sm font-semibold">

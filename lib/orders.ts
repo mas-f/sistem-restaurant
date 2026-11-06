@@ -87,6 +87,7 @@ export type OrderRow = {
   subtotal: number;
   total: number;
   note: string;
+  paymentId?: string | null;
   createdAt: Date;
   items: Array<{
     id: string;
@@ -96,6 +97,8 @@ export type OrderRow = {
     unitPrice: number;
     station: DbStation;
     note: string;
+    /** Ikut hanya bila query menyertakan relasi produk (mis. halaman lacak). */
+    product?: { imageUrl: string } | null;
   }>;
   session?: {
     id: string;
@@ -153,11 +156,13 @@ export function toUiOrder(row: OrderRow): Order {
       modifierDelta: 0,
       note: item.note,
       station: STATION_TO_UI[item.station],
+      imageUrl: item.product?.imageUrl,
     })),
     createdAt: row.createdAt.toISOString(),
     status: ORDER_STATUS_TO_UI[row.status],
     kitchenStatus: KITCHEN_STATUS_TO_UI[row.kitchenStatus],
     note: row.note,
+    paid: row.paymentId != null,
     subtotal: row.subtotal,
     total: row.total,
   };
@@ -295,7 +300,10 @@ export async function getKitchenOrders(): Promise<Order[]> {
     orderBy: { createdAt: "asc" },
     take: 200,
     include: {
-      items: { orderBy: { id: "asc" } },
+      items: {
+        orderBy: { id: "asc" },
+        include: { product: { select: { imageUrl: true } } },
+      },
       session: { include: { table: { select: { sessionToken: true } } } },
     },
   });
@@ -330,7 +338,10 @@ export async function getCashierData(): Promise<{
           where: { status: { not: "cancelled" }, paymentId: null },
           orderBy: { createdAt: "asc" },
           include: {
-            items: { orderBy: { id: "asc" } },
+            items: {
+              orderBy: { id: "asc" },
+              include: { product: { select: { imageUrl: true } } },
+            },
             session: { include: { table: { select: { sessionToken: true } } } },
           },
         },

@@ -108,6 +108,8 @@ export interface OrderItem {
   modifierDelta: number;
   note: string;
   station: string;
+  /** Hanya diisi dari keranjang tamu; order lama/DB tidak menyimpannya. */
+  imageUrl?: string;
 }
 
 export interface Order {
@@ -121,6 +123,8 @@ export interface Order {
   status: OrderStatus;
   kitchenStatus: KitchenStatus;
   note: string;
+  /** True bila order sudah dilunasi di kasir. */
+  paid?: boolean;
   subtotal?: number;
   total?: number;
 }

@@ -25,7 +25,7 @@ screen.
   products, dining tables (async server components + server actions in `lib/action.ts`),
   product images on Supabase Storage (`lib/supabase-storage.ts`), table QR codes on
   `/admin/tables/qr` (real scannable SVG from `sessionToken`), customer ordering
-  (menu from DB, cart → `createOrderAction`, success/tracking pages), `TableSession` /
+  (menu from DB, cart → `createOrderAction` → tracking page), `TableSession` /
   `Order` / `OrderItem` / `Payment` flow, kitchen display (`advanceKitchenAction`),
   cashier billing & per-order payment (`payOrdersAction`, receipt print at
   `/staff/cashier/receipt/[paymentCode]`, payment history at

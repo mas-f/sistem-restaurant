@@ -17,7 +17,10 @@ async function TrackingContent({
   const order = await prisma.order.findFirst({
     where: { OR: [{ code: decoded }, { id: decoded }] },
     include: {
-      items: { orderBy: { id: "asc" } },
+      items: {
+        orderBy: { id: "asc" },
+        include: { product: { select: { imageUrl: true } } },
+      },
       session: { include: { table: true } },
     },
   });

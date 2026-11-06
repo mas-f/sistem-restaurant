@@ -25,7 +25,7 @@ export function ProductImage({
 
   if (!src || failed) {
     return (
-      <div className="flex size-full items-center justify-center bg-gradient-to-br from-secondary to-accent/40">
+      <div className="flex size-full items-center justify-center bg-linear-to-br from-secondary to-accent/40">
         <UtensilsCrossed
           className="size-8 text-muted-foreground/60"
           aria-hidden

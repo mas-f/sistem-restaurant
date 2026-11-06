@@ -1,8 +1,9 @@
 "use client";
 
-import { Plus, XCircle } from "lucide-react";
+import { AlertTriangle, Plus, XCircle } from "lucide-react";
 import { ProductImage } from "@/components/customer/product-image";
 import { rupiah } from "@/lib/format";
+import { LOW_PORTION_THRESHOLD } from "@/lib/menu";
 import type { MenuProduct } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,10 @@ export function ProductCard({
   product: MenuProduct;
   onOpen: (p: MenuProduct) => void;
 }) {
+  // Sisa porsi sedikit masih bisa dipesan — hanya diberi badge peringatan.
+  const lowStock =
+    product.available && product.portions <= LOW_PORTION_THRESHOLD;
+
   return (
     <button
       type="button"
@@ -25,7 +30,11 @@ export function ProductCard({
         "active:translate-y-0 cursor-pointer"
       )}
       aria-label={`${product.name}, ${rupiah(product.price)}${
-        product.available ? "" : ", sedang habis"
+        !product.available
+          ? ", sedang habis"
+          : lowStock
+            ? `, sisa ${product.portions} porsi`
+            : ""
       }`}
     >
       <div className="relative h-28 w-full overflow-hidden bg-linear-to-br from-secondary to-accent/40 sm:h-32">
@@ -41,6 +50,11 @@ export function ProductCard({
         {!product.available ? (
           <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-status-error-bg px-2 py-0.5 text-[11px] font-bold text-status-error-fg shadow-xs">
             <XCircle className="size-3" aria-hidden /> Habis
+          </span>
+        ) : lowStock ? (
+          <span className="tnum absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-status-preparing-bg px-2 py-0.5 text-[11px] font-bold text-status-preparing-fg shadow-xs">
+            <AlertTriangle className="size-3" aria-hidden /> Sisa{" "}
+            {product.portions} porsi
           </span>
         ) : null}
       </div>

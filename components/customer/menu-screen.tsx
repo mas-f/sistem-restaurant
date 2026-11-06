@@ -72,6 +72,7 @@ export function MenuScreen({
       modifierDelta: 0,
       note,
       station: p.station,
+      imageUrl: p.imageUrl,
     });
     toast({
       title: "Ditambahkan ke keranjang",

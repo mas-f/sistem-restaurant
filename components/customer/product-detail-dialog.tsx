@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { rupiah } from "@/lib/format";
+import { LOW_PORTION_THRESHOLD } from "@/lib/menu";
 import type { MenuProduct } from "@/lib/types";
 
 export function ProductDetailDialog({
@@ -55,18 +56,18 @@ export function ProductDetailDialog({
             <DialogTitle className="font-heading text-xl font-extrabold">
               {product.name}
             </DialogTitle>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              {product.description}
-            </p>
-            <p className="tnum mt-2 text-lg font-extrabold text-primary">
+            <p className="tnum mt-1 text-lg font-extrabold text-primary">
               {rupiah(product.price)}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {product.description}
             </p>
             {!product.available ? (
               <p className="mt-1 flex items-center gap-1.5 text-xs font-bold text-status-error-fg">
                 <XCircle className="size-3.5" aria-hidden />
                 Menu ini sedang tidak tersedia — bahan belum cukup.
               </p>
-            ) : product.portions <= 10 ? (
+            ) : product.portions <= LOW_PORTION_THRESHOLD ? (
               <p className="tnum mt-1 text-xs font-semibold text-status-preparing-fg">
                 Tersisa {product.portions} porsi dari stok bahan.
               </p>
@@ -87,7 +88,7 @@ export function ProductDetailDialog({
             />
           </div>
 
-          <div className="sticky bottom-0 -mx-5 flex items-center gap-3 border-t border-border bg-card px-5 py-4">
+          <div className="sticky bottom-0 -mx-5 flex items-center gap-3 border-t border-border bg-card px-5 pt-4">
             <div className="flex items-center gap-1 rounded-full border border-border bg-background p-1">
               <button
                 type="button"

@@ -283,7 +283,7 @@ except empty-state wells, which dash deliberately to signal "nothing here yet".
   `relative aspect-[185/51] overflow-hidden` span with `<Image fill
   object-cover>` crops away the canvas padding; height comes from context.
 - **Heights:** `h-7` in staff headers and the customer menu header, `h-5` in
-  secondary headers (cart, tracking, order success, QR page), `h-12` on the
+  secondary headers (cart, tracking, QR page), `h-12` on the
   landing hero.
 - **Favicon:** `public/favicon.png` — 512×512 square crop of the first glyph,
   wired via `metadata.icons.icon` in `app/layout.tsx`.

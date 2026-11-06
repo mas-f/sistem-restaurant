@@ -4,6 +4,13 @@ import type { ProductAvailability } from "@/lib/recipe";
 /** Tab sintetis "Semua" — tidak pernah bertabrakan dengan id UUID dari DB. */
 export const ALL_CATEGORY_ID = "all";
 
+/**
+ * Di bawah/sama dengan angka ini, menu ditandai "sisa sedikit". Dipakai badge
+ * kartu menu tamu dan keterangan di dialog detail supaya ambangnya tidak
+ * pernah berbeda antar komponen.
+ */
+export const LOW_PORTION_THRESHOLD = 10;
+
 export interface MenuProductRow {
   id: string;
   name: string;

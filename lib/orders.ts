@@ -336,7 +336,10 @@ export async function getCashierData(): Promise<{
           where: { status: { not: "cancelled" }, paymentId: null },
           orderBy: { createdAt: "asc" },
           include: {
-            items: { orderBy: { id: "asc" } },
+            items: {
+              orderBy: { id: "asc" },
+              include: { product: { select: { imageUrl: true } } },
+            },
             session: { include: { table: { select: { sessionToken: true } } } },
           },
         },

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { BrandLogo } from "@/components/brand-logo";
+import { ProductImage } from "@/components/customer/product-image";
 import { SignOutButton } from "@/components/sign-out-button";
 import { TimeLabel } from "@/components/time-label";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -431,12 +432,21 @@ export function CashierScreen({
                                 {o.items.map((it) => (
                                   <li
                                     key={it.id}
-                                    className="flex items-baseline justify-between gap-2 text-sm"
+                                    className="flex items-center gap-2 text-sm"
                                   >
-                                    <span className="min-w-0 truncate">
-                                      <span className="tnum font-bold">
-                                        {it.quantity}×
-                                      </span>{" "}
+                                    <div className="relative size-9 shrink-0">
+                                      <div className="size-full overflow-hidden rounded-md bg-muted">
+                                        <ProductImage
+                                          src={it.imageUrl ?? ""}
+                                          alt=""
+                                          sizes="36px"
+                                        />
+                                      </div>
+                                      <span className="tnum absolute -right-1 -bottom-1 flex size-[18px] items-center justify-center rounded-full border border-border bg-card text-[10px] font-extrabold">
+                                        {it.quantity}
+                                      </span>
+                                    </div>
+                                    <span className="min-w-0 flex-1 truncate font-medium">
                                       {it.productName}
                                     </span>
                                     <span className="tnum shrink-0 font-semibold">

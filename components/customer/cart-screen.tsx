@@ -67,7 +67,7 @@ export function CartScreen({
         tone: "success",
       });
       router.push(
-        `/order/success?id=${encodeURIComponent(result.code)}&token=${encodeURIComponent(tableToken)}`
+        `/order/${encodeURIComponent(result.code)}?token=${encodeURIComponent(tableToken)}`
       );
     });
   };

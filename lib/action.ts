@@ -702,6 +702,12 @@ export const deleteTableAction = async (
 class OrderActionError extends Error { }
 class StockActionError extends Error { }
 
+// Transaksi multi-tulis berjalan lewat jaringan (Vercel -> database), jadi
+// default Prisma 5 detik bisa terlampaui saat latensi sedang tinggi. Batas ini
+// tetap jauh di bawah maxDuration fungsi dan hanya dipakai untuk transaksi
+// yang memang melakukan beberapa tulis berurutan.
+const MULTI_WRITE_TX = { maxWait: 10_000, timeout: 20_000 } as const;
+
 async function requireRole(roles: UserRole[]) {
   const session = await auth();
   const role = session?.user?.role;
@@ -874,7 +880,7 @@ async function deductRecipeStock(
     a.localeCompare(b)
   );
 
-  for (const [ingredientId, need] of orderedRequirements) {
+  for (const [, need] of orderedRequirements) {
     if (!need.isActive) {
       throw new OrderActionError(
         `Bahan ${need.name} sedang dinonaktifkan. Hubungi staf.`
@@ -888,33 +894,44 @@ async function deductRecipeStock(
         )} ${need.unit}).`
       );
     }
-
-    const after = need.stock.minus(need.required);
-
-    // Optimistic guard: hanya potong bila stok masih sama dengan yang dibaca.
-    const updated = await tx.ingredient.updateMany({
-      where: { id: ingredientId, stock: need.stock },
-      data: { stock: after },
-    });
-
-    if (updated.count === 0) {
-      throw new OrderActionError(
-        "Stok berubah saat pesanan diproses. Kirim ulang pesanan."
-      );
-    }
-
-    await tx.stockMovement.create({
-      data: {
-        ingredientId,
-        type: "out",
-        quantity: need.required.negated(),
-        stockBefore: need.stock,
-        stockAfter: after,
-        note: `Pemakaian order ${orderCode}`,
-        createdById,
-      },
-    });
   }
+
+  // Semua bahan dipotong dalam SATU statement. Optimistic guard tetap
+  // `stock = stok yang dibaca`: bila ada pesanan lain yang lebih dulu memotong,
+  // baris itu tidak ikut ter-update dan jumlah affected row jadi lebih kecil.
+  // Ini memangkas round trip dari 2 x jumlah bahan menjadi 2 query total —
+  // penting karena transaksi berjalan jauh dari server (serverless).
+  const stockValues = orderedRequirements.map(
+    ([ingredientId, need]) =>
+      Prisma.sql`(${ingredientId}::text, ${need.stock.toFixed(2)}::numeric, ${need.required.toFixed(2)}::numeric)`
+  );
+
+  const updated = await tx.$executeRaw`
+    UPDATE "Ingredient" AS i
+    SET "stock" = v."before" - v."qty",
+        "updatedAt" = now()
+    FROM (VALUES ${Prisma.join(stockValues)}) AS v("id", "before", "qty")
+    WHERE i."id" = v."id" AND i."stock" = v."before"
+  `;
+
+  if (updated !== orderedRequirements.length) {
+    throw new OrderActionError(
+      "Stok berubah saat pesanan diproses. Kirim ulang pesanan."
+    );
+  }
+
+  // Jejak pemakaian juga ditulis sekaligus, bukan satu INSERT per bahan.
+  await tx.stockMovement.createMany({
+    data: orderedRequirements.map(([ingredientId, need]) => ({
+      ingredientId,
+      type: "out",
+      quantity: need.required.negated(),
+      stockBefore: need.stock,
+      stockAfter: need.stock.minus(need.required),
+      note: `Pemakaian order ${orderCode}`,
+      createdById,
+    })),
+  });
 }
 
 /**
@@ -1028,7 +1045,7 @@ export const createOrderAction = async (
       );
 
       return created;
-    });
+    }, MULTI_WRITE_TX);
 
     revalidatePath("/staff/kitchen");
     revalidatePath("/staff/cashier");
@@ -1302,7 +1319,7 @@ export const payOrdersAction = async (
         orderCodes: selectedOrders.map((order) => order.code),
         sessionClosed,
       };
-    });
+    }, MULTI_WRITE_TX);
 
     revalidatePath("/staff/cashier");
     revalidatePath("/staff/orders");

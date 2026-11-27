@@ -5,6 +5,15 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   experimental: {
     agentUpgrade: "security",
+    // Default Next.js: halaman dinamis tidak disimpan di client cache sama
+    // sekali, jadi setiap kembali ke halaman sebelumnya server dirender ulang
+    // (beberapa round trip database). 30 detik cukup untuk membuat navigasi
+    // bolak-balik terasa instan; mutasi tetap memanggil router.refresh() dan
+    // revalidatePath() sehingga data yang baru diubah langsung segar.
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
   },
   images: {
     // Gambar produk disimpan di Supabase Storage (bucket publik), sehingga

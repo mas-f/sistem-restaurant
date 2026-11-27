@@ -41,10 +41,31 @@ export default async function InventoryPage({
   const q =
     typeof sp.q === "string" ? sp.q.trim().slice(0, MAX_QUERY_LENGTH) : "";
 
-  const suppliers = await prisma.supplier.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
+  // Daftar supplier dan bahan tidak saling bergantung — muat bersamaan.
+  // Karena semua bahan memang sudah diambil untuk KPI, filter supplier
+  // diterapkan di memori (tidak menambah round trip).
+  const [suppliers, rowsRaw] = await Promise.all([
+    prisma.supplier.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.ingredient.findMany({
+      where: q ? { name: { contains: q, mode: "insensitive" as const } } : {},
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        unit: true,
+        stock: true,
+        minStock: true,
+        costPerUnit: true,
+        isActive: true,
+        supplierId: true,
+        supplier: { select: { name: true } },
+        _count: { select: { movements: true } },
+      },
+    }),
+  ]);
 
   // Supplier asing dari URL diabaikan supaya filter tidak pernah menghasilkan
   // kombinasi yang mustahil.
@@ -59,26 +80,11 @@ export default async function InventoryPage({
     ? (rawStatus as InventoryStatusFilter)
     : "";
 
-  const rowsRaw = await prisma.ingredient.findMany({
-    where: {
-      ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
-      ...(supplier ? { supplierId: supplier } : {}),
-    },
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      unit: true,
-      stock: true,
-      minStock: true,
-      costPerUnit: true,
-      isActive: true,
-      supplier: { select: { name: true } },
-      _count: { select: { movements: true } },
-    },
-  });
+  const scopedRows = supplier
+    ? rowsRaw.filter((row) => row.supplierId === supplier)
+    : rowsRaw;
 
-  const rows: InventoryRow[] = rowsRaw.map((row) => {
+  const rows: InventoryRow[] = scopedRows.map((row) => {
     const stock = Number(row.stock);
     const minStock = Number(row.minStock);
 

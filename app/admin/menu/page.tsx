@@ -46,29 +46,38 @@ export default async function Page({
     ],
   };
 
-  const total = await prisma.product.count({ where });
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
   const rawPage = Number.parseInt(sp.page ?? "", 10);
-  const page = Number.isFinite(rawPage)
-    ? Math.min(Math.max(1, rawPage), totalPages)
-    : 1;
+  const requestedPage = Number.isFinite(rawPage) ? Math.max(1, rawPage) : 1;
 
-  const products = await prisma.product.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    skip: (page - 1) * PAGE_SIZE,
-    take: PAGE_SIZE,
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      price: true,
-      imageUrl: true,
-      category: { select: { name: true } },
-      _count: { select: { recipeItems: true } },
-    },
-  });
+  const findProducts = (targetPage: number) =>
+    prisma.product.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (targetPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        imageUrl: true,
+        category: { select: { name: true } },
+        _count: { select: { recipeItems: true } },
+      },
+    });
+
+  // Jumlah total dan halaman produk tidak saling bergantung — jalankan dalam
+  // satu gelombang, lalu ambil ulang hanya bila nomor halaman dari URL
+  // melewati batas (kasus jarang).
+  const [total, firstRows] = await Promise.all([
+    prisma.product.count({ where }),
+    findProducts(requestedPage),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const page = Math.min(requestedPage, totalPages);
+  const products =
+    page === requestedPage ? firstRows : await findProducts(page);
 
   // Ketersediaan diturunkan dari resep + stok bahan, bukan kolom tersendiri.
   const [availability, withoutRecipeCount] = await Promise.all([

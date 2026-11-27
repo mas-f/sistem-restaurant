@@ -139,12 +139,15 @@ export type PaymentRow = {
   orders: Array<{ code: string }>;
 };
 
-export function toUiOrder(row: OrderRow): Order {
+export function toUiOrder(
+  row: OrderRow,
+  fallbackSessionToken = ""
+): Order {
   return {
     id: row.id,
     code: row.code,
     sessionId: row.sessionId,
-    sessionToken: row.session?.table.sessionToken ?? "",
+    sessionToken: row.session?.table.sessionToken ?? fallbackSessionToken,
     tableCode: row.tableCode,
     items: row.items.map((item) => ({
       id: item.id,
@@ -216,7 +219,7 @@ export async function getOrdersForScreen(take = 200): Promise<Order[]> {
     },
   });
 
-  return rows.map(toUiOrder);
+  return rows.map((row) => toUiOrder(row));
 }
 
 export interface OrdersPageParams {
@@ -263,28 +266,37 @@ export async function getOrdersPage({
     ],
   };
 
-  const total = await prisma.order.count({ where });
-  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
-  const currentPage = Math.min(
-    Math.max(1, Math.trunc(page) || 1),
-    totalPages
-  );
+  const requestedPage = Math.max(1, Math.trunc(page) || 1);
 
-  const rows = await prisma.order.findMany({
-    where,
-    // Tie-breaker `id` menjaga urutan stabil saat `createdAt` kembar, supaya
-    // tidak ada baris yang terlewat/dobel antar halaman.
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    skip: (currentPage - 1) * safePageSize,
-    take: safePageSize,
-    include: {
-      items: { orderBy: { id: "asc" } },
-      session: { include: { table: { select: { sessionToken: true } } } },
-    },
-  });
+  const findRows = (targetPage: number) =>
+    prisma.order.findMany({
+      where,
+      // Tie-breaker `id` menjaga urutan stabil saat `createdAt` kembar, supaya
+      // tidak ada baris yang terlewat/dobel antar halaman.
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (targetPage - 1) * safePageSize,
+      take: safePageSize,
+      include: {
+        items: { orderBy: { id: "asc" } },
+        session: { include: { table: { select: { sessionToken: true } } } },
+      },
+    });
+
+  // `count` dan pengambilan baris halaman tidak saling bergantung — jalankan
+  // bersamaan, lalu ambil ulang hanya bila nomor halaman dari URL melewati
+  // batas (kasus jarang, mis. setelah menghapus order terakhir di halaman akhir).
+  const [total, firstRows] = await Promise.all([
+    prisma.order.count({ where }),
+    findRows(requestedPage),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const rows =
+    currentPage === requestedPage ? firstRows : await findRows(currentPage);
 
   return {
-    orders: rows.map(toUiOrder),
+    orders: rows.map((row) => toUiOrder(row)),
     total,
     page: currentPage,
     totalPages,
@@ -308,7 +320,7 @@ export async function getKitchenOrders(): Promise<Order[]> {
     },
   });
 
-  return rows.map(toUiOrder);
+  return rows.map((row) => toUiOrder(row));
 }
 
 /** Data meja, sesi terbuka, dan order aktif untuk layar kasir. */
@@ -342,7 +354,6 @@ export async function getCashierData(): Promise<{
               orderBy: { id: "asc" },
               include: { product: { select: { imageUrl: true } } },
             },
-            session: { include: { table: { select: { sessionToken: true } } } },
           },
         },
       },
@@ -352,7 +363,13 @@ export async function getCashierData(): Promise<{
   return {
     tables: tables.map(toUiDiningTable),
     sessions: sessions.map(toUiTableSession),
-    orders: sessions.flatMap((session) => session.orders.map(toUiOrder)),
+    // Token meja sudah tersedia di session induk, jadi order tidak perlu
+    // meng-include ulang relasi session → table (menghemat 2 query).
+    orders: sessions.flatMap((session) =>
+      session.orders.map((order) =>
+        toUiOrder(order, session.table.sessionToken)
+      )
+    ),
   };
 }
 
@@ -471,7 +488,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
 
   return {
     tables: tables.map(toUiDiningTable),
-    activeOrders: activeOrders.map(toUiOrder),
+    activeOrders: activeOrders.map((row) => toUiOrder(row)),
     ordersTodayCount,
     todayRevenue: todayPayments._sum.amount ?? 0,
     yesterdayRevenue: yesterdayPayments._sum.amount ?? 0,
@@ -511,7 +528,7 @@ export async function getSalesData(): Promise<SalesData> {
   ]);
 
   return {
-    orders: orders.map(toUiOrder),
+    orders: orders.map((row) => toUiOrder(row)),
     payments: payments.map(toUiPayment),
   };
 }

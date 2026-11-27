@@ -18,14 +18,15 @@ export default async function TableOrderPage({
 }) {
   await connection();
   const { token } = await params;
-  // Token QR dari database; fallback mock menjaga tautan lama tetap terbuka.
-  const table = await resolveTableByToken(token);
 
-  if (!table) notFound();
-
+  // Identitas meja dan katalog saling independen — ambil bersamaan supaya
+  // halaman tamu tidak menunggu dua gelombang round trip.
+  //
   // Katalog tamu selalu dari database. Kategori kosong sengaja tetap tampil
   // (keputusan produk) agar struktur menu mengikuti data admin apa adanya.
-  const [categories, products] = await Promise.all([
+  const [table, categories, products] = await Promise.all([
+    // Token QR dari database; fallback mock menjaga tautan lama tetap terbuka.
+    resolveTableByToken(token),
     prisma.category.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true },
@@ -43,6 +44,8 @@ export default async function TableOrderPage({
       },
     }),
   ]);
+
+  if (!table) notFound();
 
   // Ketersediaan menu diturunkan dari resep + stok bahan (bukan flag manual).
   const availability = await getProductAvailabilityMap(

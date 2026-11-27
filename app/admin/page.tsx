@@ -9,15 +9,21 @@ export const instant = false;
 export default async function AdminDashboardPage() {
   await connection();
 
-  const { tables, activeOrders, ordersTodayCount, todayRevenue, yesterdayRevenue } =
-    await getAdminDashboardData();
-
-  // Inventaris sudah pindah ke database — peringatan stok membaca tabel
-  // Ingredient, bukan data mock.
-  const [lowStock, unavailable] = await Promise.all([
+  // Ketiga kelompok data saling independen — jalankan bersamaan agar halaman
+  // hanya menunggu satu gelombang round trip, bukan tiga berurutan.
+  const [dashboard, lowStock, unavailable] = await Promise.all([
+    getAdminDashboardData(),
     getLowStockIngredients(),
     getUnavailableProducts(),
   ]);
+
+  const {
+    tables,
+    activeOrders,
+    ordersTodayCount,
+    todayRevenue,
+    yesterdayRevenue,
+  } = dashboard;
   const unavailableNames = unavailable.map((product) => product.name);
 
   return (
